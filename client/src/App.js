@@ -6,6 +6,8 @@ import About from './pages/About';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import UserList from './pages/UserList';
+import UserExport from './pages/UserExport';
 
 function App() {
   const [page, setPage] = useState('store');
@@ -76,6 +78,20 @@ function App() {
               <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='library' ? ' underline' : ''}`} onClick={() => setPage('library')}>Bibliothek</button>
               <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='about' ? ' underline' : ''}`} onClick={() => setPage('about')}>Über Uns</button>
               
+              {/* UserList nur für Administratoren anzeigen */}
+              {isLoggedIn && user && user.is_admin && (
+                <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='users' ? ' underline' : ''}`} onClick={() => setPage('users')}>
+                  👑 Nutzer verwalten
+                </button>
+              )}
+              
+              {/* UserExport nur für Administratoren anzeigen */}
+              {isLoggedIn && user && user.is_admin && (
+                <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='export' ? ' underline' : ''}`} onClick={() => setPage('export')}>
+                  📁 Export
+                </button>
+              )}
+              
               {!isLoggedIn ? (
                 <>
                   <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='login' ? ' underline' : ''}`} onClick={() => setPage('login')}>Login</button>
@@ -119,6 +135,8 @@ function App() {
         )}
   {page === 'library' && <Library />}
   {page === 'about' && <About />}
+  {page === 'users' && isLoggedIn && user && user.is_admin && <UserList user={user} />}
+  {page === 'export' && isLoggedIn && user && user.is_admin && <UserExport user={user} />}
   {page === 'login' && !isLoggedIn && <Login onLogin={handleLogin} />}
   {page === 'register' && !isLoggedIn && <Register onLogin={handleLogin} />}
   {page === 'profile' && isLoggedIn && <Profile user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />}

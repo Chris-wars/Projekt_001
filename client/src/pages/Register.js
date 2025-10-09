@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Modal from '../components/Modal';
 
 export default function Register({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -9,11 +10,36 @@ export default function Register({ onLogin }) {
     role: 'user'
   });
 
+  const [modal, setModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
+  const showModal = (title, message, type = 'info') => {
+    setModal({
+      isOpen: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  const closeModal = () => {
+    setModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'info'
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwörter stimmen nicht überein!');
+      showModal('Passwort-Fehler', 'Passwörter stimmen nicht überein!', 'error');
       return;
     }
     
@@ -50,28 +76,15 @@ export default function Register({ onLogin }) {
           localStorage.setItem('token', tokenData.access_token);
           onLogin(userData);
         } else {
-          alert('Registrierung erfolgreich! Bitte loggen Sie sich ein.');
+          showModal('Registrierung erfolgreich', 'Registrierung erfolgreich! Bitte loggen Sie sich ein.', 'success');
         }
       } else {
         const errorData = await response.json();
-        alert(`Registrierung fehlgeschlagen: ${errorData.detail}`);
+        showModal('Registrierung fehlgeschlagen', errorData.detail, 'error');
       }
     } catch (error) {
       console.error('Registrierungs-Fehler:', error);
-      
-      // Fallback: Simulierte Registrierung wenn Backend nicht erreichbar
-      console.log('Backend nicht erreichbar, verwende simulierte Registrierung');
-      const userData = {
-        id: 1,
-        username: formData.username,
-        email: formData.email,
-        is_developer: formData.role === 'developer',
-        is_active: true
-      };
-      
-      // Fake Token für Frontend-Tests
-      localStorage.setItem('token', 'fake-token-for-testing');
-      onLogin(userData);
+      showModal('Verbindungsfehler', 'Backend ist nicht erreichbar. Bitte stellen Sie sicher, dass das Backend läuft.', 'error');
     }
   };
 
@@ -92,8 +105,8 @@ export default function Register({ onLogin }) {
           onChange={handleChange}
           className="p-3 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-400"
         >
-          <option value="user">User</option>
-          <option value="developer">Entwickler</option>
+          <option value="user">🎮 User</option>
+          <option value="developer">👨‍💻 Entwickler</option>
         </select>
         <input 
           type="text" 
@@ -137,6 +150,15 @@ export default function Register({ onLogin }) {
         <span className="text-gray-400">Bereits registriert? </span>
         <button className="text-red-400 hover:text-red-300 underline">Hier einloggen</button>
       </div>
+      
+      {/* Modal für Nachrichten */}
+      <Modal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
     </>
   );
 }

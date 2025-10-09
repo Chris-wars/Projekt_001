@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Modal from '../components/Modal';
 
 export default function Login({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -6,6 +7,31 @@ export default function Login({ onLogin }) {
     password: '',
     role: 'user'
   });
+
+  const [modal, setModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
+  const showModal = (title, message, type = 'info') => {
+    setModal({
+      isOpen: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  const closeModal = () => {
+    setModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'info'
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,28 +64,15 @@ export default function Login({ onLogin }) {
           const userData = await userResponse.json();
           onLogin(userData);
         } else {
-          alert('Fehler beim Abrufen der Benutzerdaten');
+          showModal('Fehler', 'Fehler beim Abrufen der Benutzerdaten', 'error');
         }
       } else {
         const errorData = await response.json();
-        alert(`Login fehlgeschlagen: ${errorData.detail}`);
+        showModal('Login fehlgeschlagen', errorData.detail, 'error');
       }
     } catch (error) {
       console.error('Login-Fehler:', error);
-      
-      // Fallback: Simulierter Login wenn Backend nicht erreichbar
-      console.log('Backend nicht erreichbar, verwende simulierten Login');
-      const userData = {
-        id: 1,
-        username: formData.username,
-        email: `${formData.username}@example.com`,
-        is_developer: formData.role === 'developer',
-        is_active: true
-      };
-      
-      // Fake Token für Frontend-Tests
-      localStorage.setItem('token', 'fake-token-for-testing');
-      onLogin(userData);
+      showModal('Verbindungsfehler', 'Backend ist nicht erreichbar. Bitte stellen Sie sicher, dass das Backend läuft.', 'error');
     }
   };
 
@@ -101,10 +114,15 @@ export default function Login({ onLogin }) {
         />
         <button type="submit" className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 rounded transition">Login</button>
       </form>
-      <div className="text-center mt-4">
-        <span className="text-gray-400">Noch kein Account? </span>
-        <button className="text-red-400 hover:text-red-300 underline">Hier registrieren</button>
-      </div>
+      
+      {/* Modal für Nachrichten */}
+      <Modal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
     </>
   );
 }
