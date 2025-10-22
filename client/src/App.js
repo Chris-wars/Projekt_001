@@ -8,6 +8,8 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import UserList from './pages/UserList';
 import UserExport from './pages/UserExport';
+import GameLibrary from './pages/GameLibrary';
+import AddGame from './pages/AddGame';
 
 function App() {
   const [page, setPage] = useState('store');
@@ -75,7 +77,16 @@ function App() {
             <h1 className="text-3xl font-bold text-red-400 tracking-widest drop-shadow-lg">INDIE HUB</h1>
             <nav className="flex gap-8">
               <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='store' ? ' underline' : ''}`} onClick={() => setPage('store')}>Store</button>
+              <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='games' ? ' underline' : ''}`} onClick={() => setPage('games')}>🎮 Spiele</button>
               <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='library' ? ' underline' : ''}`} onClick={() => setPage('library')}>Bibliothek</button>
+              
+              {/* Entwickler-Features */}
+              {isLoggedIn && user && user.is_developer && (
+                <button className={`text-green-200 hover:text-green-400 font-semibold transition${page==='add-game' ? ' underline' : ''}`} onClick={() => setPage('add-game')}>
+                  ➕ Spiel hinzufügen
+                </button>
+              )}
+              
               <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='about' ? ' underline' : ''}`} onClick={() => setPage('about')}>Über Uns</button>
               
               {/* UserList nur für Administratoren anzeigen */}
@@ -103,43 +114,16 @@ function App() {
             </nav>
           </header>
       <main className="max-w-4xl mx-auto mt-12 bg-gray-800 bg-opacity-90 rounded-xl shadow-2xl p-10">
-        {page === 'store' && (
-          <>
-            <h2 className="text-2xl font-bold text-red-300 mb-4">Willkommen im Indie Game Store!</h2>
-            <p className="mb-6 text-gray-200">Entdecke neue Indie-Spiele, stöbere durch Angebote und finde deine nächsten Favoriten – alles im modernen Steam-Look mit roten Akzenten.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-8">
-              {/* Beispielhafte GameCards */}
-              <div className="bg-gray-900 rounded-lg shadow-lg p-4 flex flex-col items-center hover:bg-red-900 transition">
-                <div className="w-32 h-40 bg-gray-700 rounded mb-3 flex items-center justify-center text-gray-400">Bild</div>
-                <h3 className="text-lg font-bold text-red-300">Game Title</h3>
-                <span className="text-gray-400 text-sm">Studio Name</span>
-                <span className="mt-2 text-red-400 font-bold">19,99 €</span>
-                <button className="mt-3 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition">Kaufen</button>
-              </div>
-              <div className="bg-gray-900 rounded-lg shadow-lg p-4 flex flex-col items-center hover:bg-red-900 transition">
-                <div className="w-32 h-40 bg-gray-700 rounded mb-3 flex items-center justify-center text-gray-400">Bild</div>
-                <h3 className="text-lg font-bold text-red-300">Game Title</h3>
-                <span className="text-gray-400 text-sm">Studio Name</span>
-                <span className="mt-2 text-red-400 font-bold">14,99 €</span>
-                <button className="mt-3 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition">Kaufen</button>
-              </div>
-              <div className="bg-gray-900 rounded-lg shadow-lg p-4 flex flex-col items-center hover:bg-red-900 transition">
-                <div className="w-32 h-40 bg-gray-700 rounded mb-3 flex items-center justify-center text-gray-400">Bild</div>
-                <h3 className="text-lg font-bold text-red-300">Game Title</h3>
-                <span className="text-gray-400 text-sm">Studio Name</span>
-                <span className="mt-2 text-red-400 font-bold">9,99 €</span>
-                <button className="mt-3 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition">Kaufen</button>
-              </div>
-            </div>
-          </>
-        )}
-  {page === 'library' && <Library />}
-  {page === 'about' && <About />}
-  {page === 'users' && isLoggedIn && user && user.is_admin && <UserList user={user} />}
-  {page === 'export' && isLoggedIn && user && user.is_admin && <UserExport user={user} />}
-  {page === 'login' && !isLoggedIn && <Login onLogin={handleLogin} />}
-  {page === 'register' && !isLoggedIn && <Register onLogin={handleLogin} />}
-  {page === 'profile' && isLoggedIn && <Profile user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />}
+        {page === 'store' && <GameLibrary user={user} isStorePage={true} />}
+        {page === 'games' && <GameLibrary user={user} />}
+        {page === 'library' && <Library />}
+        {page === 'add-game' && isLoggedIn && user && user.is_developer && <AddGame user={user} />}
+        {page === 'about' && <About />}
+        {page === 'users' && isLoggedIn && user && user.is_admin && <UserList user={user} />}
+        {page === 'export' && isLoggedIn && user && user.is_admin && <UserExport user={user} />}
+        {page === 'login' && !isLoggedIn && <Login onLogin={handleLogin} />}
+        {page === 'register' && !isLoggedIn && <Register onLogin={handleLogin} />}
+        {page === 'profile' && isLoggedIn && <Profile user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />}
       </main>
           <footer className="text-center text-gray-500 py-8 mt-12">© 2025 Indie Hub – Inspired by Steam and Sezuma</footer>
         </>

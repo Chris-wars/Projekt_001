@@ -13,9 +13,12 @@ import auth
 import models
 import schemas
 import crud
+import library_api
+import legacy_compat_api
 from database import engine, get_db
 from security import SECRET_KEY, ALGORITHM
 from export_service import UserExportService
+from auth import get_current_user
 
 # Erstelle die Datenbanktabellen
 models.Base.metadata.create_all(bind=engine)
@@ -43,30 +46,76 @@ app.add_middleware(
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = schemas.TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
-    user = crud.get_user_by_username(db, username=token_data.username)
-    if user is None:
-        raise credentials_exception
-    return user
-
 app.include_router(auth.router)
+app.include_router(library_api.router)  # Bibliotheks-API hinzufügen
+app.include_router(legacy_compat_api.router)
 
 @app.get("/")
 def read_root():
     return {"message": "Willkommen bei der Indie-Game-Plattform API"}
+
+# Einfache Games API für Frontend
+@app.post("/games/", response_model=schemas.Game)
+def create_game(
+    game: schemas.GameCreate,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Neues Spiel erstellen (nur Entwickler)"""
+    if not current_user.is_developer:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur Entwickler können Spiele hinzufügen"
+        )
+    
+    # Erstelle neues Spiel in der Datenbank
+    db_game = models.Game(
+        title=game.title,
+        description=game.description,
+        genre=game.genre,
+        platform=game.platform,
+        price=float(game.price) if game.price else 0.0,
+        is_free=game.is_free,
+        download_url=game.download_url,
+        image_url=game.image_url,
+        developer_id=current_user.id
+    )
+    db.add(db_game)
+    db.commit()
+    db.refresh(db_game)
+    
+    return db_game
+
+@app.get("/games/", response_model=list[schemas.Game])
+def get_games(db: Session = Depends(get_db)):
+    """Alle Spiele abrufen"""
+    games = db.query(models.Game).all()
+    return games
+
+@app.delete("/games/{game_id}")
+def delete_game(
+    game_id: int,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Spiel löschen (nur eigene Spiele für Entwickler)"""
+    game = db.query(models.Game).filter(models.Game.id == game_id).first()
+    if not game:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Spiel nicht gefunden"
+        )
+    
+    # Nur eigene Spiele oder als Admin
+    if not current_user.is_admin and game.developer_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Sie können nur ihre eigenen Spiele löschen"
+        )
+    
+    db.delete(game)
+    db.commit()
+    return {"message": "Spiel erfolgreich gelöscht"}
 
 @app.get("/users/me/", response_model=schemas.User)
 def read_users_me(current_user: schemas.User = Depends(get_current_user)):
