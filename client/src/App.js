@@ -78,7 +78,7 @@ function App() {
             <nav className="flex gap-8">
               <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='store' ? ' underline' : ''}`} onClick={() => setPage('store')}>Store</button>
               <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='games' ? ' underline' : ''}`} onClick={() => setPage('games')}>🎮 Spiele</button>
-              <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='library' ? ' underline' : ''}`} onClick={() => setPage('library')}>Bibliothek</button>
+              <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='library' ? ' underline' : ''}`} onClick={() => setPage('library')}>💜 Wunschliste</button>
               
               {/* Entwickler-Features */}
               {isLoggedIn && user && user.is_developer && (

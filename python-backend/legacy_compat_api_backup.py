@@ -191,9 +191,9 @@ def get_current_user(authorization: str = Header(None)):
             "id": user[0],
             "username": user[1],
             "email": user[2],
-            "role": "developer" if user[5] else "user",
-            "is_developer": bool(user[5]),
-            "is_admin": False
+            "role": user[5] if len(user) > 5 else "user",
+            "is_developer": bool(user[6]) if len(user) > 6 else False,
+            "is_admin": bool(user[7]) if len(user) > 7 else False
         }
         
     except (JWTError, ValueError):
@@ -220,9 +220,9 @@ def get_current_user(authorization: str = Header(None)):
             "id": user[0],
             "username": user[1],
             "email": user[2],
-            "role": "developer" if user[5] else "user",
-            "is_developer": bool(user[5]),
-            "is_admin": False
+            "role": user[5] if len(user) > 5 else "user",
+            "is_developer": bool(user[6]) if len(user) > 6 else False,
+            "is_admin": bool(user[7]) if len(user) > 7 else False
         }
 
 

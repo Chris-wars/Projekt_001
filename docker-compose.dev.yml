@@ -1,0 +1,28 @@
+# Development Override für Docker Compose
+# Optimiert für Entwicklung mit Hot-Reload und Debug-Features
+
+services:
+  backend:
+    environment:
+      - DEBUG=True
+      - RELOAD=True
+    volumes:
+      # Live Code Sync für Development
+      - ./python-backend:/app:cached
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    volumes:
+      # Live Code Sync für Development
+      - ./client:/app:cached
+      - /app/node_modules
+    command: ["npm", "start"]
+    ports:
+      - "3001:3000"

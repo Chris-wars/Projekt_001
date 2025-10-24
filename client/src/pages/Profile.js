@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Modal from '../components/Modal';
 
 export default function Profile({ user, onLogout, onUserUpdate }) {
+  const isMountedRef = useRef(true);
   const [avatar, setAvatar] = useState(user.avatar_url || null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedUser, setEditedUser] = useState({
@@ -21,8 +22,22 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
     isConfirm: false
   });
 
+  // Cleanup-Effekt
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const safeSetState = (setter, value) => {
+    if (isMountedRef.current) {
+      setter(value);
+    }
+  };
+
   const showModal = (title, message, type = 'info') => {
-    setModal({
+    safeSetState(setModal, {
       isOpen: true,
       title,
       message,
@@ -32,7 +47,7 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
   };
 
   const showConfirm = (title, message, onConfirm, confirmText = 'Ja', cancelText = 'Nein') => {
-    setModal({
+    safeSetState(setModal, {
       isOpen: true,
       title,
       message,
@@ -45,7 +60,7 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
   };
 
   const closeModal = () => {
-    setModal({
+    safeSetState(setModal, {
       isOpen: false,
       title: '',
       message: '',
@@ -86,11 +101,13 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
 
         if (response.ok) {
           const updatedUser = await response.json();
-          setAvatar(updatedUser.avatar_url);
-          if (onUserUpdate) {
-            onUserUpdate(updatedUser);
+          if (isMountedRef.current) {
+            setAvatar(updatedUser.avatar_url);
+            if (onUserUpdate) {
+              onUserUpdate(updatedUser);
+            }
+            showModal('Erfolg', 'Avatar erfolgreich hochgeladen!', 'success');
           }
-          showModal('Erfolg', 'Avatar erfolgreich hochgeladen!', 'success');
         } else {
           showModal('Upload-Fehler', 'Fehler beim Hochladen des Avatars.', 'error');
         }
@@ -119,11 +136,13 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
 
       if (response.ok) {
         const updatedUser = await response.json();
-        setAvatar(null);
-        if (onUserUpdate) {
-          onUserUpdate(updatedUser);
+        if (isMountedRef.current) {
+          setAvatar(null);
+          if (onUserUpdate) {
+            onUserUpdate(updatedUser);
+          }
+          showModal('Erfolg', 'Avatar entfernt.', 'success');
         }
-        showModal('Erfolg', 'Avatar entfernt.', 'success');
       } else {
         showModal('Fehler', 'Fehler beim Entfernen des Avatars.', 'error');
       }
@@ -139,6 +158,8 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
       return;
     }
 
+    console.log('Sending profile update:', editedUser); // Debug log
+
     try {
       const response = await fetch('http://localhost:8080/users/me/', {
         method: 'PUT',
@@ -149,27 +170,40 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
         body: JSON.stringify(editedUser)
       });
 
+      console.log('Response status:', response.status); // Debug log
+
       if (response.ok) {
         const updatedUser = await response.json();
-        
-        let successMessage = 'Profil erfolgreich aktualisiert!';
-        if (editedUser.is_developer !== user.is_developer) {
-          const newRole = updatedUser.is_developer ? 'Entwickler' : 'User';
-          successMessage = `Profil aktualisiert! Ihre Entwickler-Rolle: ${newRole}`;
+        console.log('Updated user received:', updatedUser); // Debug log
+        if (isMountedRef.current) {
+          let successMessage = 'Profil erfolgreich aktualisiert!';
+          if (editedUser.is_developer !== user.is_developer) {
+            const newRole = updatedUser.is_developer ? 'Entwickler' : 'User';
+            successMessage = `Profil aktualisiert! Sie sind jetzt: ${newRole}`;
+            console.log('Rollenänderung:', {
+              vorher: user.is_developer ? 'Entwickler' : 'User',
+              nachher: updatedUser.is_developer ? 'Entwickler' : 'User',
+              editedValue: editedUser.is_developer,
+              updatedValue: updatedUser.is_developer
+            });
+          }
+          showModal('Profil gespeichert', successMessage, 'success');
+          
+          if (onUserUpdate) {
+            onUserUpdate(updatedUser);
+            console.log('onUserUpdate called with:', updatedUser); // Debug log
+          }
+          
+          setIsEditingProfile(false);
         }
-        showModal('Profil gespeichert', successMessage, 'success');
-        
-        if (onUserUpdate) {
-          onUserUpdate(updatedUser);
-        }
-        
-        setIsEditingProfile(false);
       } else {
         const errorData = await response.json();
+        console.error('API Error:', errorData); // Debug log
         const errorMessage = errorData.detail || `Ein Fehler ist aufgetreten (Status: ${response.status})`;
         showModal('Speicherfehler', `Fehler beim Speichern: ${errorMessage}`, 'error');
       }
     } catch (error) {
+      console.error('Network Error:', error); // Debug log
       showModal('Verbindungsfehler', 'Backend nicht erreichbar. Bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut.', 'error');
     }
   };
@@ -427,7 +461,7 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
                   email: user.email,
                   is_developer: user.is_developer,
                   is_admin: user.is_admin || false,
-                  birth_year: user.birth_year
+                  birth_date: user.birth_date
                 });
               }}
               className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded transition"

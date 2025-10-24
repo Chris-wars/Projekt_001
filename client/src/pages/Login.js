@@ -37,35 +37,26 @@ export default function Login({ onLogin }) {
     e.preventDefault();
     
     try {
-      // Echte Backend-Authentifizierung
-      const loginForm = new FormData();
-      loginForm.append('username', formData.username);
-      loginForm.append('password', formData.password);
-      
-      const response = await fetch('http://localhost:8080/login', {
+      // JSON-basierte Backend-Authentifizierung (kompatibler Endpoint)
+      const response = await fetch('http://localhost:8080/login-json', {
         method: 'POST',
-        body: loginForm
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password
+        })
       });
 
       if (response.ok) {
-        const tokenData = await response.json();
+        const data = await response.json();
         
         // Token im localStorage speichern
-        localStorage.setItem('token', tokenData.access_token);
+        localStorage.setItem('token', data.access_token);
         
-        // User-Daten abrufen
-        const userResponse = await fetch('http://localhost:8080/users/me/', {
-          headers: {
-            'Authorization': `Bearer ${tokenData.access_token}`
-          }
-        });
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          onLogin(userData);
-        } else {
-          showModal('Fehler', 'Fehler beim Abrufen der Benutzerdaten', 'error');
-        }
+        // User-Daten sind bereits in der Response enthalten
+        onLogin(data.user);
       } else {
         const errorData = await response.json();
         showModal('Login fehlgeschlagen', errorData.detail, 'error');

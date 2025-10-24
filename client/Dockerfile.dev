@@ -1,0 +1,20 @@
+# Development Dockerfile für React Frontend
+# Optimiert für Hot-Reload und Entwicklung
+
+FROM node:18-alpine
+
+# Arbeitsverzeichnis setzen
+WORKDIR /app
+
+# Dependencies installieren
+COPY package*.json ./
+RUN npm install
+
+# Alle Dateien kopieren
+COPY . .
+
+# Port freigeben
+EXPOSE 3000
+
+# Development Server starten
+CMD ["npm", "start"]
