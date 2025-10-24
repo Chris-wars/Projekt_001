@@ -2,7 +2,7 @@
 # Multi-stage build für optimierte Production-Builds
 
 # Build Stage - Node.js für React Build
-FROM node:18-alpine as build
+FROM node:20-alpine AS build
 
 # Metadata
 LABEL maintainer="Projekt Team <support@indiegameplatform.com>"
@@ -25,7 +25,7 @@ COPY . .
 RUN npm run build
 
 # Production Stage - Nginx für Static File Serving
-FROM nginx:alpine as production
+FROM nginx:alpine AS production
 
 # Nginx Konfiguration kopieren
 COPY nginx.conf /etc/nginx/nginx.conf

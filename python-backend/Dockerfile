@@ -1,7 +1,7 @@
 # Indie Game Platform - Backend Dockerfile
 # Multi-stage build für optimale Container-Größe und Sicherheit
 
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # Metadata
 LABEL maintainer="Projekt Team <support@indiegameplatform.com>"
@@ -23,14 +23,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Python Dependencies Stage
-FROM base as dependencies
+FROM base AS dependencies
 
 # Requirements kopieren und installieren
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Production Stage
-FROM base as production
+FROM base AS production
 
 # Non-root User erstellen für Sicherheit
 RUN groupadd -r appuser && useradd -r -g appuser appuser

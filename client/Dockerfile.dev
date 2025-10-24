@@ -1,7 +1,7 @@
 # Development Dockerfile für React Frontend
 # Optimiert für Hot-Reload und Entwicklung
 
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Arbeitsverzeichnis setzen
 WORKDIR /app
