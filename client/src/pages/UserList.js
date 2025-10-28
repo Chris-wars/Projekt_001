@@ -52,7 +52,7 @@ export default function UserList({ user }) {
         return;
       }
 
-      response = await fetch(`http://localhost:8080${endpoint}`, {
+      response = await fetch(`http://localhost:8000${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -85,7 +85,7 @@ export default function UserList({ user }) {
       const roleUpdate = {};
       roleUpdate[roleType] = newValue;
 
-      const response = await fetch(`http://localhost:8080/admin/users/${userId}/role`, {
+      const response = await fetch(`http://localhost:8000/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -166,7 +166,7 @@ export default function UserList({ user }) {
       <div className="max-w-6xl mx-auto mt-8 p-6 bg-gray-900 rounded-lg shadow-lg">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-red-300">
-            � Nutzerverwaltung ({users.length} Benutzer)
+            👑 Nutzerverwaltung ({users.length} Benutzer)
             <span className="text-sm text-yellow-400 ml-2">Administrator-Bereich</span>
           </h2>
           <button
@@ -208,7 +208,7 @@ export default function UserList({ user }) {
                       <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-gray-400 text-lg overflow-hidden">
                         {userData.avatar_url ? (
                           <img 
-                            src={`http://localhost:8080${userData.avatar_url}`} 
+                            src={`http://localhost:8000${userData.avatar_url}`} 
                             alt="Avatar" 
                             className="w-full h-full object-cover"
                           />

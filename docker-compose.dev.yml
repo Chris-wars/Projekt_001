@@ -6,6 +6,8 @@ services:
     environment:
       - DEBUG=True
       - RELOAD=True
+      - LANG=de_DE.UTF-8
+      - LC_ALL=de_DE.UTF-8
     volumes:
       # Live Code Sync für Development
       - ./python-backend:/app:cached
@@ -19,10 +21,14 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - REACT_APP_API_URL=http://localhost:8000
       - NODE_ENV=development
+      - LANG=de_DE.UTF-8
+      - LC_ALL=de_DE.UTF-8
     volumes:
       # Live Code Sync für Development
       - ./client:/app:cached
       - /app/node_modules
     command: ["npm", "start"]
     ports:
-      - "3001:3000"
+      - "3002:3000"
+    depends_on:
+      - backend

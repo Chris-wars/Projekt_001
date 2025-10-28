@@ -43,8 +43,6 @@ services:
     environment:
       - REACT_APP_API_URL=http://localhost:8000
       - REACT_APP_ENVIRONMENT=docker
-    ports:
-      - "3000:80"
     networks:
       - indie-game-network
     depends_on:

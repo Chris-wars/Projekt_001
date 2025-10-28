@@ -1,7 +1,16 @@
-from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, Text, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, Text, ForeignKey, Float, Table
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
+
+# Association Table für Wunschliste (Many-to-Many zwischen User und Game)
+wishlist_table = Table(
+    'wishlist',
+    Base.metadata,
+    Column('user_id', Integer, ForeignKey('users.id'), primary_key=True),
+    Column('game_id', Integer, ForeignKey('games.id'), primary_key=True),
+    Column('added_at', DateTime, default=datetime.utcnow)
+)
 
 class User(Base):
     __tablename__ = "users"
@@ -19,6 +28,9 @@ class User(Base):
 
     # Relationship zu Games (für Entwickler)
     games = relationship("Game", back_populates="developer")
+    
+    # Wunschliste-Beziehung (Many-to-Many)
+    wishlist = relationship("Game", secondary=wishlist_table, back_populates="wishlisted_by")
 
 class Game(Base):
     __tablename__ = "games"
@@ -38,6 +50,9 @@ class Game(Base):
     # Entwickler-Beziehung
     developer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     developer = relationship("User", back_populates="games")
+    
+    # Wunschliste-Beziehung (Many-to-Many)
+    wishlisted_by = relationship("User", secondary=wishlist_table, back_populates="wishlist")
     
     # Status und Metadaten
     is_published = Column(Boolean, default=False)  # Veröffentlicht oder Entwurf

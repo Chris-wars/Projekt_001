@@ -38,7 +38,7 @@ export default function Login({ onLogin }) {
     
     try {
       // JSON-basierte Backend-Authentifizierung (kompatibler Endpoint)
-      const response = await fetch('http://localhost:8080/login-json', {
+      const response = await fetch('http://localhost:8000/login-json', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

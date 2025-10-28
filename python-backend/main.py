@@ -35,6 +35,7 @@ import schemas
 import crud
 import library_api
 import legacy_compat_api
+import wishlist_api  # Wunschliste-API hinzufügen
 from database import engine, get_db
 from security import SECRET_KEY, ALGORITHM
 from export_service import UserExportService
@@ -99,6 +100,7 @@ def health_check():
 app.include_router(auth.router)
 app.include_router(library_api.router)  # Bibliotheks-API hinzufügen
 app.include_router(legacy_compat_api.router)
+app.include_router(wishlist_api.router)  # Wunschliste-API hinzufügen
 
 @app.get("/", summary="API Root", tags=["General"])
 def read_root():

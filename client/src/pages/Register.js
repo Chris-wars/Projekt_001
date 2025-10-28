@@ -45,7 +45,7 @@ export default function Register({ onLogin }) {
     
     try {
       // Echte Backend-Registrierung
-      const response = await fetch('http://localhost:8080/register', {
+      const response = await fetch('http://localhost:8000/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -66,7 +66,7 @@ export default function Register({ onLogin }) {
         loginForm.append('username', formData.username);
         loginForm.append('password', formData.password);
         
-        const loginResponse = await fetch('http://localhost:8080/login', {
+        const loginResponse = await fetch('http://localhost:8000/login', {
           method: 'POST',
           body: loginForm
         });

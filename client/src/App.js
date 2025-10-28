@@ -23,7 +23,7 @@ function App() {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const response = await fetch('http://localhost:8080/users/me/', {
+          const response = await fetch('http://localhost:8000/users/me/', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -116,7 +116,7 @@ function App() {
       <main className="max-w-4xl mx-auto mt-12 bg-gray-800 bg-opacity-90 rounded-xl shadow-2xl p-10">
         {page === 'store' && <GameLibrary user={user} isStorePage={true} />}
         {page === 'games' && <GameLibrary user={user} />}
-        {page === 'library' && <Library />}
+        {page === 'library' && <Library user={user} />}
         {page === 'add-game' && isLoggedIn && user && user.is_developer && <AddGame user={user} />}
         {page === 'about' && <About />}
         {page === 'users' && isLoggedIn && user && user.is_admin && <UserList user={user} />}

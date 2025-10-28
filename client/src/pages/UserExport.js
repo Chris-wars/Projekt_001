@@ -40,7 +40,7 @@ export default function UserExport({ user }) {
         return;
       }
 
-      const response = await fetch('http://localhost:8080/admin/export/list', {
+      const response = await fetch('http://localhost:8000/admin/export/list', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -93,7 +93,7 @@ export default function UserExport({ user }) {
           throw new Error('Unbekannter Export-Typ');
       }
 
-      const response = await fetch(`http://localhost:8080${endpoint}`, {
+      const response = await fetch(`http://localhost:8000${endpoint}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -124,7 +124,7 @@ export default function UserExport({ user }) {
         return;
       }
 
-      const response = await fetch(`http://localhost:8080/admin/export/download/${filename}`, {
+      const response = await fetch(`http://localhost:8000/admin/export/download/${filename}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

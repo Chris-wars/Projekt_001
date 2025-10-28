@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wunschliste Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: white; }
+        button { padding: 10px 20px; margin: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .error { color: #ff6b6b; }
+        .success { color: #51cf66; }
+        .info { color: #339af0; }
+        #results { margin-top: 20px; padding: 20px; background: #2a2a2a; border-radius: 5px; }
+        .game-card { margin: 10px 0; padding: 15px; background: #3a3a3a; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🎮 Wunschliste Debug Test</h1>
+    
+    <div>
+        <h3>1. Login</h3>
+        <input type="text" id="username" placeholder="Benutzername" value="test_role_user">
+        <input type="password" id="password" placeholder="Passwort" value="testpassword123">
+        <button onclick="login()">Login</button>
+    </div>
+    
+    <div>
+        <h3>2. Spiele laden</h3>
+        <button onclick="loadGames()">Spiele laden</button>
+    </div>
+    
+    <div>
+        <h3>3. Wunschliste laden</h3>
+        <button onclick="loadWishlist()">Wunschliste laden</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        let token = null;
+        let games = [];
+        let wishlist = [];
+        
+        const BASE_URL = 'http://localhost:8000';
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            results.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()}: ${message}</div>`;
+            console.log(message);
+        }
+        
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch(`${BASE_URL}/login`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.access_token;
+                    log(`✅ Login erfolgreich! Token: ${token.substring(0, 20)}...`, 'success');
+                } else {
+                    log(`❌ Login fehlgeschlagen: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Login Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function loadGames() {
+            try {
+                const response = await fetch(`${BASE_URL}/games/`);
+                
+                if (response.ok) {
+                    games = await response.json();
+                    log(`✅ ${games.length} Spiele geladen`, 'success');
+                    
+                    // Zeige Spiele an
+                    const gamesList = games.map(game => 
+                        `<div class="game-card">
+                            <strong>${game.title}</strong> (ID: ${game.id})<br>
+                            <small>Published: ${game.is_published || 'unknown'}</small><br>
+                            <button onclick="addToWishlist(${game.id}, '${game.title}')">💜 Zur Wunschliste</button>
+                            <button onclick="removeFromWishlist(${game.id}, '${game.title}')">💔 Entfernen</button>
+                        </div>`
+                    ).join('');
+                    
+                    log(`<div><h4>Verfügbare Spiele:</h4>${gamesList}</div>`, 'info');
+                } else {
+                    log(`❌ Spiele laden fehlgeschlagen: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Spiele laden Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function loadWishlist() {
+            if (!token) {
+                log('❌ Kein Token verfügbar', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BASE_URL}/wishlist/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    wishlist = await response.json();
+                    log(`✅ Wunschliste geladen: ${wishlist.length} Spiele`, 'success');
+                    
+                    if (wishlist.length > 0) {
+                        const wishlistItems = wishlist.map(game => 
+                            `<div class="game-card">
+                                <strong>${game.title}</strong> (ID: ${game.id})<br>
+                                <small>Genre: ${game.genre || 'Unbekannt'}</small>
+                            </div>`
+                        ).join('');
+                        
+                        log(`<div><h4>Wunschliste:</h4>${wishlistItems}</div>`, 'info');
+                    } else {
+                        log('ℹ️ Wunschliste ist leer', 'info');
+                    }
+                } else {
+                    log(`❌ Wunschliste laden fehlgeschlagen: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Wunschliste laden Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function addToWishlist(gameId, gameTitle) {
+            if (!token) {
+                log('❌ Kein Token verfügbar', 'error');
+                return;
+            }
+            
+            try {
+                log(`🔧 Füge "${gameTitle}" (ID: ${gameId}) zur Wunschliste hinzu...`, 'info');
+                
+                const response = await fetch(`${BASE_URL}/wishlist/${gameId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                log(`🔧 Response Status: ${response.status}`, 'info');
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ ${result.message}`, 'success');
+                    // Lade Wunschliste neu
+                    setTimeout(loadWishlist, 500);
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Hinzufügen fehlgeschlagen: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Hinzufügen Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function removeFromWishlist(gameId, gameTitle) {
+            if (!token) {
+                log('❌ Kein Token verfügbar', 'error');
+                return;
+            }
+            
+            try {
+                log(`🔧 Entferne "${gameTitle}" (ID: ${gameId}) aus der Wunschliste...`, 'info');
+                
+                const response = await fetch(`${BASE_URL}/wishlist/${gameId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ ${result.message}`, 'success');
+                    // Lade Wunschliste neu
+                    setTimeout(loadWishlist, 500);
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Entfernen fehlgeschlagen: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Entfernen Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initial laden
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Wunschliste Debug Test gestartet', 'info');
+        });
+    </script>
+</body>
+</html>

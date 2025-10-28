@@ -91,7 +91,7 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
       formData.append("file", file);
 
       try {
-        const response = await fetch('http://localhost:8080/upload-avatar/', {
+        const response = await fetch('http://localhost:8000/upload-avatar/', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -125,7 +125,7 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/users/me/', {
+      const response = await fetch('http://localhost:8000/users/me/', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +161,7 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
     console.log('Sending profile update:', editedUser); // Debug log
 
     try {
-      const response = await fetch('http://localhost:8080/users/me/', {
+      const response = await fetch('http://localhost:8000/users/me/', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -252,7 +252,7 @@ export default function Profile({ user, onLogout, onUserUpdate }) {
             <div className="w-24 h-24 bg-gray-700 rounded-full mb-4 flex items-center justify-center text-gray-400 text-2xl overflow-hidden">
               {avatar ? (
                 <img 
-                  src={`http://localhost:8080${avatar}`} 
+                  src={`http://localhost:8000${avatar}`} 
                   alt="Avatar" 
                   className="w-full h-full object-cover"
                 />

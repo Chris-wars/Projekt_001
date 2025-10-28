@@ -64,7 +64,7 @@ export default function AddGame({ user, onGameAdded }) {
         image_url: formData.image_url
       };
 
-      const response = await fetch('http://localhost:8080/games/', {
+      const response = await fetch('http://localhost:8000/games/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

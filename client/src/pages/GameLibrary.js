@@ -1,9 +1,10 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Modal from '../components/Modal';
 
 export default function GameLibrary({ user, isStorePage = false }) {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [wishlistGames, setWishlistGames] = useState(new Set()); // IDs der Spiele in der Wunschliste
   const [modal, setModal] = useState({
     isOpen: false,
     title: '',
@@ -29,14 +30,118 @@ export default function GameLibrary({ user, isStorePage = false }) {
     });
   };
 
+  // Wunschliste-Funktionen
+  const loadWishlistStatus = useCallback(async () => {
+    console.log('🔧 loadWishlistStatus aufgerufen, user:', !!user);
+    if (!user) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🔧 loadWishlistStatus - Token:', !!token);
+      if (!token) return;
+
+      const response = await fetch('http://localhost:8000/wishlist/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('🔧 loadWishlistStatus - Response:', response.status);
+
+      if (response.ok) {
+        const wishlistGamesData = await response.json();
+        const wishlistIds = new Set(wishlistGamesData.map(game => game.id));
+        console.log('🔧 loadWishlistStatus - Geladene IDs:', Array.from(wishlistIds));
+        setWishlistGames(wishlistIds);
+      }
+    } catch (error) {
+      console.error('🔧 Fehler beim Laden der Wunschliste:', error);
+    }
+  }, [user]);
+
+  const addToWishlist = async (gameId, gameTitle) => {
+    console.log('🔧 addToWishlist aufgerufen:', { gameId, gameTitle, user: !!user });
+    
+    if (!user) {
+      showModal('Anmeldung erforderlich', 'Bitte loggen Sie sich ein, um Spiele zur Wunschliste hinzuzufügen.', 'warning');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🔧 Token gefunden:', !!token);
+      
+      const response = await fetch(`http://localhost:8000/wishlist/${gameId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('🔧 API Response:', response.status, response.statusText);
+
+      if (response.ok) {
+        const newWishlistSet = new Set([...wishlistGames, gameId]);
+        console.log('🔧 Aktualisiere Wunschliste-Set:', Array.from(newWishlistSet));
+        setWishlistGames(newWishlistSet);
+        showModal('Wunschliste', `"${gameTitle}" zur Wunschliste hinzugefügt!`, 'success');
+      } else if (response.status === 400) {
+        const errorData = await response.json();
+        console.log('🔧 400 Error:', errorData);
+        showModal('Info', errorData.detail, 'info');
+      } else if (response.status === 401) {
+        console.log('🔧 401 Error: Unauthorized');
+        showModal('Anmeldung erforderlich', 'Bitte loggen Sie sich erneut ein.', 'warning');
+      } else {
+        console.log('🔧 Other Error:', response.status);
+        showModal('Fehler', 'Spiel konnte nicht zur Wunschliste hinzugefügt werden.', 'error');
+      }
+    } catch (error) {
+      console.error('🔧 Fehler beim Hinzufügen zur Wunschliste:', error);
+      showModal('Verbindungsfehler', 'Fehler beim Verbinden mit dem Server.', 'error');
+    }
+  };
+
+  const removeFromWishlist = async (gameId, gameTitle) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`http://localhost:8000/wishlist/${gameId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setWishlistGames(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(gameId);
+          return newSet;
+        });
+        showModal('Entfernt', `"${gameTitle}" aus der Wunschliste entfernt.`, 'success');
+      } else {
+        showModal('Fehler', 'Spiel konnte nicht aus der Wunschliste entfernt werden.', 'error');
+      }
+    } catch (error) {
+      console.error('Fehler beim Entfernen aus der Wunschliste:', error);
+      showModal('Verbindungsfehler', 'Fehler beim Verbinden mit dem Server.', 'error');
+    }
+  };
+
   const loadGames = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/games/');
+      const response = await fetch('http://localhost:8000/games/');
       
       if (response.ok) {
         const gamesData = await response.json();
         setGames(gamesData);
+        
+        // Lade auch die Wunschliste-Status
+        if (user) {
+          loadWishlistStatus();
+        }
       } else {
         showModal('Fehler beim Laden', 'Spiele konnten nicht geladen werden.', 'error');
       }
@@ -46,7 +151,7 @@ export default function GameLibrary({ user, isStorePage = false }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user, loadWishlistStatus]);
 
   useEffect(() => {
     loadGames();
@@ -64,7 +169,7 @@ export default function GameLibrary({ user, isStorePage = false }) {
         return;
       }
 
-      const response = await fetch(`http://localhost:8080/games/${gameId}`, {
+      const response = await fetch(`http://localhost:8000/games/${gameId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -98,7 +203,7 @@ export default function GameLibrary({ user, isStorePage = false }) {
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-bold text-red-300">
-          {isStorePage ? ' Game Store' : 'Meine Wunschliste'}
+          {isStorePage ? '🛒 Game Store' : '🎮 Spiele'}
         </h2>
         <div className="text-sm text-gray-400">
           {games.length} {games.length === 1 ? 'Spiel' : 'Spiele'} verfügbar
@@ -152,7 +257,7 @@ export default function GameLibrary({ user, isStorePage = false }) {
                     {game.is_free ? (
                       <span className="text-green-400 font-bold"> Kostenlos</span>
                     ) : (
-                      <span className="text-yellow-400 font-bold"> {game.price}€</span>
+                      <span className="text-yellow-400 font-bold">€{game.price}</span>
                     )}
                   </span>
                 </div>
@@ -169,27 +274,40 @@ export default function GameLibrary({ user, isStorePage = false }) {
                       rel="noopener noreferrer"
                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded transition"
                     >
-                       Download
+                      📥 Download
                     </a>
                   )}
 
-                  {isStorePage ? (
-                    <button
-                      className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition"
-                      onClick={() => showModal('Wunschliste', `"${game.title}" zur Wunschliste hinzugefügt!`, 'success')}
-                    >
-                      Zur Wunschliste
-                    </button>
-                  ) : (
-                    user && user.is_developer && game.developer_id === user.id && (
+                  {/* Wunschliste Button für Store und Spiele-Seite */}
+                  {(isStorePage || !user?.is_developer || game.developer_id !== user.id) && (
+                    wishlistGames.has(game.id) ? (
                       <button
-                        onClick={() => deleteGame(game.id, game.title)}
                         className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition"
-                        title="Spiel löschen"
+                        onClick={() => removeFromWishlist(game.id, game.title)}
+                        title="Aus Wunschliste entfernen"
                       >
-                        
+                        💔 Entfernen
+                      </button>
+                    ) : (
+                      <button
+                        className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition"
+                        onClick={() => addToWishlist(game.id, game.title)}
+                        title="Zur Wunschliste hinzufügen"
+                      >
+                        💜 Zur Wunschliste
                       </button>
                     )
+                  )}
+
+                  {/* Entwickler-Actions nur für eigene Spiele */}
+                  {!isStorePage && user && user.is_developer && game.developer_id === user.id && (
+                    <button
+                      onClick={() => deleteGame(game.id, game.title)}
+                      className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition"
+                      title="Spiel löschen"
+                    >
+                      🗑️ Löschen
+                    </button>
                   )}
                 </div>
               </div>
