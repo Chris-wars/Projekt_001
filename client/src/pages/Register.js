@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../components/Modal';
+import { securePasswordHash, validatePassword } from '../utils/crypto';
 
 export default function Register({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -8,6 +9,12 @@ export default function Register({ onLogin }) {
     password: '',
     confirmPassword: '',
     role: 'user'
+  });
+
+  const [passwordValidation, setPasswordValidation] = useState({
+    isValid: true,
+    errors: [],
+    strength: 'weak'
   });
 
   const [modal, setModal] = useState({
@@ -132,6 +139,7 @@ export default function Register({ onLogin }) {
           placeholder="Passwort" 
           value={formData.password}
           onChange={handleChange}
+          autoComplete="new-password"
           required
           className="p-3 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-400" 
         />
@@ -141,6 +149,7 @@ export default function Register({ onLogin }) {
           placeholder="Passwort bestätigen" 
           value={formData.confirmPassword}
           onChange={handleChange}
+          autoComplete="new-password"
           required
           className="p-3 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-400" 
         />

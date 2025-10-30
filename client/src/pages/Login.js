@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../components/Modal';
+import { securePasswordHash } from '../utils/crypto';
 
 export default function Login({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -37,6 +38,10 @@ export default function Login({ onLogin }) {
     e.preventDefault();
     
     try {
+      // 🔒 CLIENT-SIDE VERSCHLÜSSELUNG vor Übertragung
+      const hashedPassword = await securePasswordHash(formData.password, formData.username);
+      console.log('🔐 Passwort verschlüsselt für Übertragung');
+
       // JSON-basierte Backend-Authentifizierung (kompatibler Endpoint)
       const response = await fetch('http://localhost:8000/login-json', {
         method: 'POST',
@@ -45,7 +50,8 @@ export default function Login({ onLogin }) {
         },
         body: JSON.stringify({
           username: formData.username,
-          password: formData.password
+          password: hashedPassword,  // 🔒 Verschlüsseltes Passwort senden
+          is_hashed: true           // 🔒 Backend informieren dass bereits gehashed
         })
       });
 
@@ -101,6 +107,7 @@ export default function Login({ onLogin }) {
           placeholder="Passwort" 
           value={formData.password}
           onChange={handleChange}
+          autoComplete="current-password"
           className="p-3 rounded bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-400" 
         />
         <button type="submit" className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 rounded transition">Login</button>

@@ -1,0 +1,42 @@
+{
+  "export_info": {
+    "timestamp": "2025-10-28T18:10:04.364502",
+    "role_filter": "developer",
+    "count": 3
+  },
+  "users": [
+    {
+      "id": 2,
+      "username": "test_entwicker",
+      "email": "test@exampel.com",
+      "is_active": true,
+      "is_developer": true,
+      "is_admin": false,
+      "avatar_url": "/avatars/2_test_entwicker.jpg",
+      "created_at": 2,
+      "role_display": "Entwickler"
+    },
+    {
+      "id": 3,
+      "username": "test_role_user",
+      "email": "test_role@example.com",
+      "is_active": true,
+      "is_developer": true,
+      "is_admin": false,
+      "avatar_url": null,
+      "created_at": 3,
+      "role_display": "Entwickler"
+    },
+    {
+      "id": 5,
+      "username": "Sezuma",
+      "email": "sezuma86@example.com",
+      "is_active": true,
+      "is_developer": true,
+      "is_admin": false,
+      "avatar_url": null,
+      "created_at": 5,
+      "role_display": "Entwickler"
+    }
+  ]
+}

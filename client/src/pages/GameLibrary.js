@@ -40,6 +40,8 @@ export default function GameLibrary({ user, isStorePage = false }) {
       console.log('🔧 loadWishlistStatus - Token:', !!token);
       if (!token) return;
 
+      console.log('🔧 loadWishlistStatus - User ID:', user.id, 'Username:', user.username);
+      
       const response = await fetch('http://localhost:8000/wishlist/', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -50,6 +52,7 @@ export default function GameLibrary({ user, isStorePage = false }) {
 
       if (response.ok) {
         const wishlistGamesData = await response.json();
+        console.log('🔧 loadWishlistStatus - Raw response:', wishlistGamesData);
         const wishlistIds = new Set(wishlistGamesData.map(game => game.id));
         console.log('🔧 loadWishlistStatus - Geladene IDs:', Array.from(wishlistIds));
         setWishlistGames(wishlistIds);
@@ -61,16 +64,25 @@ export default function GameLibrary({ user, isStorePage = false }) {
 
   const addToWishlist = async (gameId, gameTitle) => {
     console.log('🔧 addToWishlist aufgerufen:', { gameId, gameTitle, user: !!user });
+    console.log('🔧 User Objekt vollständig:', user);
     
     if (!user) {
+      console.log('🔧 Kein User - zeige Modal');
       showModal('Anmeldung erforderlich', 'Bitte loggen Sie sich ein, um Spiele zur Wunschliste hinzuzufügen.', 'warning');
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-      console.log('🔧 Token gefunden:', !!token);
+      console.log('🔧 Token gefunden:', !!token, token ? token.substring(0, 20) + '...' : 'KEIN TOKEN');
       
+      if (!token) {
+        console.log('🔧 Kein Token - zeige Modal');
+        showModal('Anmeldung erforderlich', 'Token nicht gefunden. Bitte loggen Sie sich erneut ein.', 'warning');
+        return;
+      }
+      
+      console.log('🔧 Sende API Request...');
       const response = await fetch(`http://localhost:8000/wishlist/${gameId}`, {
         method: 'POST',
         headers: {
@@ -158,7 +170,17 @@ export default function GameLibrary({ user, isStorePage = false }) {
   }, [loadGames]);
 
   const deleteGame = async (gameId, gameTitle) => {
-    if (!window.confirm(`Möchten Sie "${gameTitle}" wirklich löschen?`)) {
+    const isAdmin = user?.is_admin;
+    const isOwnGame = user?.is_developer && games.find(g => g.id === gameId)?.developer_id === user.id;
+    
+    let confirmMessage;
+    if (isAdmin && !isOwnGame) {
+      confirmMessage = `⚠️ ADMIN-LÖSCHUNG ⚠️\n\nMöchten Sie als Administrator "${gameTitle}" von einem anderen Entwickler löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden!`;
+    } else {
+      confirmMessage = `Möchten Sie "${gameTitle}" wirklich löschen?`;
+    }
+    
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -177,8 +199,19 @@ export default function GameLibrary({ user, isStorePage = false }) {
       });
 
       if (response.ok) {
-        showModal('Spiel gelöscht', `"${gameTitle}" wurde erfolgreich gelöscht.`, 'success');
+        const isAdmin = user?.is_admin;
+        const isOwnGame = user?.is_developer && games.find(g => g.id === gameId)?.developer_id === user.id;
+        
+        if (isAdmin && !isOwnGame) {
+          showModal('Admin-Löschung erfolgreich', `👑 "${gameTitle}" wurde als Administrator gelöscht.`, 'success');
+        } else {
+          showModal('Spiel gelöscht', `"${gameTitle}" wurde erfolgreich gelöscht.`, 'success');
+        }
         loadGames();
+      } else if (response.status === 403) {
+        showModal('Keine Berechtigung', 'Sie haben keine Berechtigung, dieses Spiel zu löschen.', 'error');
+      } else if (response.status === 404) {
+        showModal('Spiel nicht gefunden', 'Das Spiel konnte nicht gefunden werden.', 'error');
       } else {
         showModal('Fehler beim Löschen', 'Spiel konnte nicht gelöscht werden.', 'error');
       }
@@ -299,14 +332,16 @@ export default function GameLibrary({ user, isStorePage = false }) {
                     )
                   )}
 
-                  {/* Entwickler-Actions nur für eigene Spiele */}
-                  {!isStorePage && user && user.is_developer && game.developer_id === user.id && (
+                  {/* Entwickler-Actions für eigene Spiele ODER Admin-Actions für alle Spiele */}
+                  {!isStorePage && user && (
+                    (user.is_developer && game.developer_id === user.id) || user.is_admin
+                  ) && (
                     <button
                       onClick={() => deleteGame(game.id, game.title)}
                       className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition"
-                      title="Spiel löschen"
+                      title={user.is_admin ? "Spiel löschen (Admin)" : "Spiel löschen"}
                     >
-                      🗑️ Löschen
+                      {user.is_admin ? "👑🗑️ Admin-Löschung" : "🗑️ Löschen"}
                     </button>
                   )}
                 </div>

@@ -25,7 +25,7 @@ from jose import JWTError, jwt
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import shutil
 import os
 
@@ -37,7 +37,7 @@ import library_api
 import legacy_compat_api
 import wishlist_api  # Wunschliste-API hinzufügen
 from database import engine, get_db
-from security import SECRET_KEY, ALGORITHM
+from security import SECRET_KEY, ALGORITHM, create_access_token, verify_password
 from export_service import UserExportService
 from auth import get_current_user
 
@@ -98,6 +98,55 @@ def health_check():
     }
 
 app.include_router(auth.router)
+
+# JSON-Login für Frontend (kompatibel mit Legacy)
+@app.post("/login-json", summary="JSON Login", tags=["Auth"])
+def login_json(credentials: dict, db: Session = Depends(get_db)):
+    """
+    JSON-basiertes Login für Frontend-Kompatibilität
+    
+    Args:
+        credentials (dict): {"username": str, "password": str}
+        db (Session): Datenbank-Session
+        
+    Returns:
+        dict: Token und Benutzerdaten
+    """
+    username = credentials.get("username")
+    password = credentials.get("password")
+    
+    if not username or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username und Password erforderlich"
+        )
+    
+    # Benutzer authentifizieren
+    user = crud.get_user_by_username(db, username=username)
+    if not user or not verify_password(password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Ungültige Anmeldedaten"
+        )
+    
+    # Token erstellen
+    access_token_expires = timedelta(minutes=30)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_developer": user.is_developer,
+            "is_admin": user.is_admin,
+            "avatar_url": user.avatar_url
+        }
+    }
 app.include_router(library_api.router)  # Bibliotheks-API hinzufügen
 app.include_router(legacy_compat_api.router)
 app.include_router(wishlist_api.router)  # Wunschliste-API hinzufügen
@@ -162,20 +211,48 @@ def create_game(
     
     return db_game
 
-@app.get("/games/", response_model=list[schemas.Game], summary="Alle Spiele abrufen", tags=["Games"])
+@app.get("/games/", response_model=list[schemas.Game], summary="Neueste Spiele abrufen", tags=["Games"])
 def get_games(db: Session = Depends(get_db)):
     """
-    Alle verfügbaren Spiele abrufen
+    Die 10 neuesten verfügbaren Spiele abrufen
     
-    Gibt eine Liste aller Spiele in der Datenbank zurück. Diese Funktion
-    benötigt keine Authentifizierung und ist öffentlich zugänglich.
+    Gibt eine Liste der 10 neuesten Spiele in der Datenbank zurück, sortiert nach
+    Erstellungsdatum (neueste zuerst). Diese Funktion benötigt keine Authentifizierung
+    und ist öffentlich zugänglich.
     
     Args:
         db (Session): Datenbank-Session
         
     Returns:
-        list[Game]: Liste aller verfügbaren Spiele
+        list[Game]: Liste der 10 neuesten verfügbaren Spiele
     """
+    games = db.query(models.Game).order_by(models.Game.id.desc()).limit(10).all()
+    return games
+
+@app.get("/admin/games/", response_model=list[schemas.Game], summary="Alle Spiele für Admin abrufen", tags=["Admin"])
+def get_all_games_admin(
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Alle verfügbaren Spiele für Administratoren abrufen
+    
+    Gibt eine Liste aller Spiele in der Datenbank zurück. Diese Funktion
+    ist nur für Administratoren zugänglich.
+    
+    Args:
+        current_user (User): Aktuell authentifizierter Benutzer (muss Admin sein)
+        db (Session): Datenbank-Session
+        
+    Returns:
+        list[Game]: Liste aller verfügbaren Spiele
+        
+    Raises:
+        HTTPException: 403 wenn Benutzer kein Administrator ist
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Administratoren können auf alle Spiele zugreifen")
+    
     games = db.query(models.Game).all()
     return games
 
@@ -221,6 +298,84 @@ def delete_game(
     db.commit()
     return {"message": "Spiel erfolgreich gelöscht"}
 
+@app.put("/games/{game_id}", response_model=schemas.Game, summary="Spiel bearbeiten", tags=["Games"])
+def update_game(
+    game_id: int,
+    game_update: schemas.GameUpdate,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Spiel bearbeiten (Entwickler für eigene Spiele, Admins für alle)
+    
+    Aktualisiert die Daten eines Spiels in der Datenbank. Entwickler können nur 
+    ihre eigenen Spiele bearbeiten, Administratoren können alle Spiele bearbeiten.
+    
+    Args:
+        game_id (int): ID des zu bearbeitenden Spiels
+        game_update (GameUpdate): Zu aktualisierende Spiel-Daten
+        current_user (User): Aktuell authentifizierter Benutzer
+        db (Session): Datenbank-Session
+        
+    Returns:
+        Game: Das aktualisierte Spiel mit neuen Daten
+        
+    Raises:
+        HTTPException: 404 wenn Spiel nicht gefunden
+        HTTPException: 403 wenn Benutzer nicht berechtigt ist
+    """
+    game = db.query(models.Game).filter(models.Game.id == game_id).first()
+    if not game:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Spiel nicht gefunden"
+        )
+    
+    # Nur eigene Spiele oder als Admin
+    if not current_user.is_admin and game.developer_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Sie können nur ihre eigenen Spiele bearbeiten"
+        )
+    
+    # Update nur die Felder, die übermittelt wurden
+    update_data = game_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(game, field, value)
+    
+    db.commit()
+    db.refresh(game)
+    
+    return game
+
+@app.get("/games/{game_id}", response_model=schemas.Game, summary="Einzelnes Spiel abrufen", tags=["Games"])
+def get_game_by_id(
+    game_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Einzelnes Spiel nach ID abrufen
+    
+    Gibt die vollständigen Daten eines spezifischen Spiels zurück.
+    
+    Args:
+        game_id (int): ID des gewünschten Spiels
+        db (Session): Datenbank-Session
+        
+    Returns:
+        Game: Vollständige Spiel-Daten
+        
+    Raises:
+        HTTPException: 404 wenn Spiel nicht gefunden
+    """
+    game = db.query(models.Game).filter(models.Game.id == game_id).first()
+    if not game:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Spiel nicht gefunden"
+        )
+    return game
+
 # Benutzer-Management API
 @app.get("/users/me/", response_model=schemas.User, summary="Eigenes Profil abrufen", tags=["Users"])
 def read_users_me(current_user: schemas.User = Depends(get_current_user)):
@@ -235,6 +390,14 @@ def read_users_me(current_user: schemas.User = Depends(get_current_user)):
     Returns:
         User: Vollständige Benutzerdaten des aktuellen Benutzers
     """
+    # Debug-Logging für Admin-User
+    if current_user.username == "Admin":
+        print(f"🔧 DEBUG /users/me/ - Admin User:")
+        print(f"   ID: {current_user.id}")
+        print(f"   Username: {current_user.username}")
+        print(f"   is_admin: {current_user.is_admin}")
+        print(f"   is_developer: {current_user.is_developer}")
+    
     return current_user
 
 @app.put("/users/me/", response_model=schemas.User, summary="Profil aktualisieren", tags=["Users"])
@@ -366,7 +529,7 @@ def get_all_users(
 
 # Entwickler-Endpoint entfernt - nur Administratoren können Benutzer verwalten
 
-@app.put("/admin/users/{user_id}/role", response_model=schemas.User, summary="Benutzerrolle ändern", tags=["Admin"])
+@app.put("/admin/users/{user_id}/role", response_model=schemas.User, summary="Entwicklerrolle ändern", tags=["Admin"])
 def update_user_role(
     user_id: int,
     role_update: schemas.UserUpdate,
@@ -374,19 +537,20 @@ def update_user_role(
     db: Session = Depends(get_db)
 ):
     """
-    Benutzerrolle ändern (nur Administratoren)
+    Entwicklerrolle ändern (nur Administratoren)
     
-    Ändert die Rolle eines Benutzers (Entwickler-Status). Diese Funktion
-    ist nur für Benutzer mit Administrator-Rechten zugänglich.
+    Ändert nur den Entwickler-Status eines Benutzers. Admin-Rechte können 
+    nicht über die API vergeben werden und müssen direkt in der Datenbank 
+    geändert werden. Diese Funktion ist nur für Administrator zugänglich.
     
     Args:
-        user_id (int): ID des Benutzers, dessen Rolle geändert werden soll
-        role_update (UserUpdate): Neue Rollendaten
+        user_id (int): ID des Benutzers, dessen Entwickler-Status geändert werden soll
+        role_update (UserUpdate): Neue Rollendaten (nur is_developer wird berücksichtigt)
         current_user (User): Aktuell authentifizierter Benutzer
         db (Session): Datenbank-Session
         
     Returns:
-        User: Aktualisierte Benutzerdaten mit neuer Rolle
+        User: Aktualisierte Benutzerdaten mit neuer Entwicklerrolle
         
     Raises:
         HTTPException: 403 wenn Benutzer kein Administrator ist
@@ -398,10 +562,11 @@ def update_user_role(
             detail="Nur Administratoren können Nutzer-Rollen ändern"
         )
     
-    # Nur Admin-Status und Entwickler-Status können geändert werden
+    # Nur Entwickler-Status kann über API geändert werden
+    # Admin-Status muss direkt in der Datenbank geändert werden
     user_update = schemas.UserUpdate(
-        is_admin=role_update.is_admin,
         is_developer=role_update.is_developer
+        # is_admin wird NICHT mehr über API geändert
     )
     
     updated_user = crud.update_user_profile(db, user_id, user_update)

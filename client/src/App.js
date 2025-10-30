@@ -10,6 +10,7 @@ import UserList from './pages/UserList';
 import UserExport from './pages/UserExport';
 import GameLibrary from './pages/GameLibrary';
 import AddGame from './pages/AddGame';
+import AdminGames from './pages/AdminGames';
 
 function App() {
   const [page, setPage] = useState('store');
@@ -31,9 +32,11 @@ function App() {
           
           if (response.ok) {
             const userData = await response.json();
+            console.log('🔧 Token-Check - Geladene User-Daten:', userData);
             setIsLoggedIn(true);
             setUser(userData);
           } else {
+            console.log('🔧 Token ungültig, entferne Token');
             // Token ungültig, entfernen
             localStorage.removeItem('token');
           }
@@ -96,6 +99,13 @@ function App() {
                 </button>
               )}
               
+              {/* Admin-Spiele-Verwaltung nur für Administratoren anzeigen */}
+              {isLoggedIn && user && user.is_admin && (
+                <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='admin-games' ? ' underline' : ''}`} onClick={() => setPage('admin-games')}>
+                  👑🎮 Spiele verwalten
+                </button>
+              )}
+              
               {/* UserExport nur für Administratoren anzeigen */}
               {isLoggedIn && user && user.is_admin && (
                 <button className={`text-gray-200 hover:text-red-400 font-semibold transition${page==='export' ? ' underline' : ''}`} onClick={() => setPage('export')}>
@@ -120,6 +130,7 @@ function App() {
         {page === 'add-game' && isLoggedIn && user && user.is_developer && <AddGame user={user} />}
         {page === 'about' && <About />}
         {page === 'users' && isLoggedIn && user && user.is_admin && <UserList user={user} />}
+        {page === 'admin-games' && isLoggedIn && user && user.is_admin && <AdminGames user={user} />}
         {page === 'export' && isLoggedIn && user && user.is_admin && <UserExport user={user} />}
         {page === 'login' && !isLoggedIn && <Login onLogin={handleLogin} />}
         {page === 'register' && !isLoggedIn && <Register onLogin={handleLogin} />}

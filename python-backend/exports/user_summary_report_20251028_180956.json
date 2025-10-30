@@ -1,0 +1,38 @@
+{
+  "report_info": {
+    "generated_at": "2025-10-28T18:09:56.943440",
+    "report_type": "User Summary Report"
+  },
+  "statistics": {
+    "total_users": 5,
+    "active_users": 5,
+    "inactive_users": 0,
+    "admins": 1,
+    "developers": 3,
+    "regular_users": 1,
+    "users_with_avatars": 1
+  },
+  "role_breakdown": {
+    "administrators": {
+      "count": 1,
+      "usernames": [
+        "Admin"
+      ]
+    },
+    "developers": {
+      "count": 3,
+      "usernames": [
+        "test_entwicker",
+        "test_role_user",
+        "Sezuma"
+      ]
+    },
+    "regular_users": {
+      "count": 1
+    }
+  },
+  "system_health": {
+    "active_user_percentage": 100.0,
+    "avatar_adoption_rate": 20.0
+  }
+}

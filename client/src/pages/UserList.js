@@ -75,6 +75,12 @@ export default function UserList({ user }) {
   }, [user]);
 
   const toggleUserRole = async (userId, roleType, newValue) => {
+    // Nur Entwickler-Status kann über Frontend geändert werden
+    if (roleType === 'is_admin') {
+      showModal('Admin-Rechte', 'Admin-Rechte können nur direkt in der Datenbank vergeben werden, nicht über das Frontend.', 'warning');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -232,12 +238,6 @@ export default function UserList({ user }) {
                             {userData.birth_date ? (
                               (() => {
                                 const birthDate = new Date(userData.birth_date);
-                                const today = new Date();
-                                let age = today.getFullYear() - birthDate.getFullYear();
-                                const monthDiff = today.getMonth() - birthDate.getMonth();
-                                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                                  age--;
-                                }
                                 return `${birthDate.toLocaleDateString('de-DE')}`;
                               })()
                             ) : (
@@ -304,17 +304,6 @@ export default function UserList({ user }) {
                               title={userData.is_developer ? 'Entwickler-Rechte entziehen' : 'Zu Entwickler machen'}
                             >
                               👨‍💻
-                            </button>
-                            <button
-                              onClick={() => toggleUserRole(userData.id, 'is_admin', !userData.is_admin)}
-                              className={`px-2 py-1 text-xs rounded transition ${
-                                userData.is_admin 
-                                  ? 'bg-yellow-600 hover:bg-yellow-500 text-white' 
-                                  : 'bg-gray-600 hover:bg-gray-500 text-white'
-                              }`}
-                              title={userData.is_admin ? 'Admin-Rechte entziehen' : 'Zu Admin machen'}
-                            >
-                              👑
                             </button>
                           </div>
                         )}

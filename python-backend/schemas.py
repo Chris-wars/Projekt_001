@@ -38,24 +38,32 @@ class UserBase(BaseModel):
     """
     username: str
     email: str
-    is_developer: bool = False
-    is_admin: bool = False
+    is_developer: bool
+    is_admin: bool
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
     """
     Schema für die Benutzerregistrierung
     
-    Erweitert UserBase um das Passwort-Feld für die Erstregistrierung.
-    Enthält auskommentierte Validatoren für Geburtsdatum (USK-Compliance).
+    Enthält alle erforderlichen Felder für die Registrierung neuer Benutzer.
+    Neue Benutzer haben standardmäßig keine Admin-/Entwicklerrechte.
     
     Attributes:
+        username (str): Eindeutiger Benutzername (3-50 Zeichen)
+        email (str): E-Mail-Adresse für Kommunikation und Login
         password (str): Klartext-Passwort (wird gehasht gespeichert)
+        is_developer (bool): Entwickler-Status (Standard: False)
+        is_admin (bool): Administrator-Status (Standard: False)
         
     Note:
         Geburtsdatum-Validierung ist temporär deaktiviert für Testing.
         In Produktion sollte USK-Compliance-Validierung aktiviert werden.
     """
+    username: str
+    email: str
     password: str
+    is_developer: bool = False
+    is_admin: bool = False
     
     # Temporär deaktiviert für Testing
     # @validator('birth_date')
@@ -201,19 +209,25 @@ class GameBase(BaseModel):
         description (Optional[str]): Detaillierte Spielbeschreibung
         genre (Optional[str]): Spielgenre aus vordefinierter Liste
         version (str): Versionsnummer (Standard: "1.0.0")
-        price (Optional[str]): Preis-Information (Standard: "Kostenlos")
+        price (Optional[float]): Preis als Dezimalzahl (Standard: 0.0 für kostenlos)
         usk_rating (str): USK-Altersfreigabe (Standard: "USK 6")
         download_url (Optional[str]): URL zum Spiele-Download
         tags (Optional[str]): Komma-getrennte Tags für Kategorisierung
+        platform (Optional[str]): Zielplattform (Standard: "Windows")
+        image_url (Optional[str]): URL zum Spiele-Bild
+        is_free (bool): Ob das Spiel kostenlos ist (Standard: True)
     """
     title: str
     description: Optional[str] = None
     genre: Optional[str] = None
     version: str = "1.0.0"
-    price: Optional[str] = "Kostenlos"
+    price: Optional[float] = 0.0
     usk_rating: str = "USK 6"
     download_url: Optional[str] = None
     tags: Optional[str] = None
+    platform: Optional[str] = "Windows"
+    image_url: Optional[str] = None
+    is_free: bool = True
 
 class GameCreate(GameBase):
     """
@@ -313,9 +327,9 @@ class Game(GameBase):
         developer_id (int): ID des Entwicklers (Fremdschlüssel)
         developer (User): Vollständige Entwickler-Daten (Relation)
         is_published (bool): Veröffentlichungsstatus
-        release_date (datetime): Zeitpunkt der Veröffentlichung
-        created_at (datetime): Erstellungszeitpunkt
-        updated_at (datetime): Letzte Änderung
+        release_date (datetime, optional): Zeitpunkt der Veröffentlichung
+        created_at (datetime, optional): Erstellungszeitpunkt
+        updated_at (datetime, optional): Letzte Änderung
         
     Config:
         from_attributes = True: Ermöglicht Erstellung aus SQLAlchemy-Modellen
@@ -324,9 +338,9 @@ class Game(GameBase):
     developer_id: int
     developer: User
     is_published: bool
-    release_date: datetime
-    created_at: datetime
-    updated_at: datetime
+    release_date: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

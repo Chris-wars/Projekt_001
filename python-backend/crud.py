@@ -37,8 +37,9 @@ def update_user_profile(db: Session, user_id: int, user_update: schemas.UserUpda
         db_user.email = user_update.email
     if user_update.is_developer is not None:
         db_user.is_developer = user_update.is_developer
-    if user_update.is_admin is not None:
-        db_user.is_admin = user_update.is_admin
+    # Admin-Status wird NICHT mehr über API geändert - nur direkt in DB
+    # if user_update.is_admin is not None:
+    #     db_user.is_admin = user_update.is_admin
     if user_update.avatar_url is not None:
         db_user.avatar_url = user_update.avatar_url
     if user_update.birth_year is not None:

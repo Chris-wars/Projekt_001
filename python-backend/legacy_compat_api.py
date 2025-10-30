@@ -150,9 +150,9 @@ def login_user(credentials: UserLogin):
                 "id": user[0],
                 "username": user[1],
                 "email": user[2],
-                "role": "developer" if user[5] else "user",
+                "role": "admin" if user[6] else ("developer" if user[5] else "user"),
                 "is_developer": bool(user[5]),
-                "is_admin": False
+                "is_admin": bool(user[6])  # user[6] ist is_admin
             }
         }
     except HTTPException:
@@ -193,7 +193,7 @@ def get_current_user(authorization: str = Header(None)):
             "email": user[2],
             "role": "developer" if user[5] else "user",
             "is_developer": bool(user[5]),
-            "is_admin": False
+            "is_admin": bool(user[6])  # user[6] ist is_admin aus der Datenbank
         }
         
     except (JWTError, ValueError):
@@ -222,7 +222,7 @@ def get_current_user(authorization: str = Header(None)):
             "email": user[2],
             "role": "developer" if user[5] else "user",
             "is_developer": bool(user[5]),
-            "is_admin": False
+            "is_admin": bool(user[6])  # user[6] ist is_admin aus der Datenbank
         }
 
 
