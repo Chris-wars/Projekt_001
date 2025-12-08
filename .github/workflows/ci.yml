@@ -28,7 +28,7 @@ jobs:
       - name: Build and push frontend
         uses: docker/build-push-action@v5
         with:
-          context: ./client
+          context: .
           file: ./client/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/projekt_001-frontend:latest
