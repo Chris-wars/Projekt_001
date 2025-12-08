@@ -28,7 +28,7 @@ RUN npm run build
 FROM nginx:alpine AS production
 
 # Nginx Konfiguration kopieren
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY client/nginx.conf /etc/nginx/nginx.conf
 
 # Build Artifacts von build stage kopieren
 COPY --from=build /app/build /usr/share/nginx/html
