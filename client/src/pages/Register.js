@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Modal from '../components/Modal';
-import { securePasswordHash, validatePassword } from '../utils/crypto';
+import { pbkdf2PasswordHash, generateBrowserFingerprint, signDataForTransmission } from '../utils/enhancedCrypto';
+import { validatePassword } from '../utils/crypto';
 
 export default function Register({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -49,39 +50,91 @@ export default function Register({ onLogin }) {
       showModal('Passwort-Fehler', 'Passwörter stimmen nicht überein!', 'error');
       return;
     }
+
+    // Passwort-Validierung
+    const validation = validatePassword(formData.password);
+    if (!validation.isValid) {
+      showModal('Schwaches Passwort', validation.errors.join('\n'), 'error');
+      return;
+    }
+    
+    console.log('🔐 Starte erweiterte Registrierungs-Verschlüsselung...');
     
     try {
-      // Echte Backend-Registrierung
+      // 1. Generiere Browser-Fingerprint
+      const browserFingerprint = await generateBrowserFingerprint();
+      console.log('🔍 Browser-Fingerprint für Registrierung generiert');
+      
+      // 2. Verschlüssele Passwort mit PBKDF2
+      console.log('🔐 Verschlüssele Passwort für Registrierung...');
+      const hashedPassword = await pbkdf2PasswordHash(
+        formData.password, 
+        formData.username, 
+        100000
+      );
+      console.log('✅ Registrierungs-Passwort sicher verschlüsselt');
+      
+      // 3. Signiere Registrierungsdaten
+      const userSecret = `${formData.username}_${browserFingerprint}`;
+      const signedData = await signDataForTransmission({
+        username: formData.username,
+        email: formData.email,
+        password: hashedPassword,
+        is_developer: formData.role === 'developer',
+        is_hashed: true,
+        client_fingerprint: browserFingerprint,
+        encryption_method: 'PBKDF2-SHA256-100k'
+      }, userSecret);
+      console.log('🔏 Registrierungsdaten signiert');
+
+      // 4. Sende sichere Registrierungsanfrage
       const response = await fetch('http://localhost:8000/register', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Client-Signature': signedData.signature || '',
+          'X-Client-Timestamp': signedData.timestamp.toString(),
+          'X-Encryption-Version': '2.0'
         },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-          is_developer: formData.role === 'developer'
-        })
+        body: JSON.stringify(signedData.data)
       });
 
       if (response.ok) {
         const userData = await response.json();
+        console.log('✅ Registrierung erfolgreich mit verbesserter Sicherheit');
         
-        // Nach erfolgreicher Registrierung automatisch einloggen
-        const loginForm = new FormData();
-        loginForm.append('username', formData.username);
-        loginForm.append('password', formData.password);
+        // Nach erfolgreicher Registrierung automatisch mit verschlüsseltem Login
+        console.log('🔐 Starte automatischen sicheren Login...');
+        const loginSignedData = await signDataForTransmission({
+          username: formData.username,
+          password: hashedPassword,
+          is_hashed: true,
+          client_fingerprint: browserFingerprint,
+          encryption_method: 'PBKDF2-SHA256-100k'
+        }, userSecret);
         
-        const loginResponse = await fetch('http://localhost:8000/login', {
+        const loginResponse = await fetch('http://localhost:8000/login-json', {
           method: 'POST',
-          body: loginForm
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Client-Signature': loginSignedData.signature || '',
+            'X-Client-Timestamp': loginSignedData.timestamp.toString(),
+            'X-Encryption-Version': '2.0'
+          },
+          body: JSON.stringify(loginSignedData.data)
         });
 
         if (loginResponse.ok) {
           const tokenData = await loginResponse.json();
           localStorage.setItem('token', tokenData.access_token);
-          onLogin(userData);
+          localStorage.setItem('user', JSON.stringify({
+            id: tokenData.user.id,
+            username: tokenData.user.username,
+            is_admin: tokenData.user.is_admin,
+            fingerprint: browserFingerprint
+          }));
+          console.log('✅ Automatischer Login erfolgreich');
+          onLogin(tokenData.user);
         } else {
           showModal('Registrierung erfolgreich', 'Registrierung erfolgreich! Bitte loggen Sie sich ein.', 'success');
         }

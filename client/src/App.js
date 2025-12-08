@@ -11,6 +11,7 @@ import UserExport from './pages/UserExport';
 import GameLibrary from './pages/GameLibrary';
 import AddGame from './pages/AddGame';
 import AdminGames from './pages/AdminGames';
+import { validateSessionSecurity, secureTokenRetrieval, secureLogout, secureGet } from './utils/secureApi';
 
 function App() {
   const [page, setPage] = useState('store');
@@ -21,29 +22,38 @@ function App() {
   // Beim Laden prüfen, ob bereits ein Token vorhanden ist
   useEffect(() => {
     const checkExistingLogin = async () => {
-      const token = localStorage.getItem('token');
+      console.log('🔐 Starte sichere Token-Validierung...');
+      
+      // 1. Prüfe Session-Sicherheit
+      const isSessionSecure = await validateSessionSecurity();
+      if (!isSessionSecure) {
+        console.warn('🚨 Session-Sicherheit kompromittiert - führe Logout durch');
+        secureLogout();
+        setIsLoading(false);
+        return;
+      }
+      
+      // 2. Sichere Token-Wiederherstellung
+      const token = await secureTokenRetrieval();
       if (token) {
         try {
-          const response = await fetch('http://localhost:8000/users/me/', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
+          console.log('🔐 Validiere Token mit sicherer API...');
+          const userData = await secureGet('/users/me/');
           
-          if (response.ok) {
-            const userData = await response.json();
-            console.log('🔧 Token-Check - Geladene User-Daten:', userData);
+          if (userData) {
+            console.log('✅ Token-Check erfolgreich - User-Daten geladen:', userData);
             setIsLoggedIn(true);
             setUser(userData);
           } else {
-            console.log('🔧 Token ungültig, entferne Token');
-            // Token ungültig, entfernen
-            localStorage.removeItem('token');
+            console.log('❌ Token ungültig - führe sichere Bereinigung durch');
+            secureLogout();
           }
         } catch (error) {
-          console.log('Fehler beim Prüfen des Tokens:', error);
+          console.error('💥 Fehler beim sicheren Token-Check:', error);
           // Bei Netzwerkfehlern Token behalten, aber nicht einloggen
         }
+      } else {
+        console.log('🔍 Kein Token gefunden');
       }
       setIsLoading(false);
     };
@@ -58,10 +68,12 @@ function App() {
   };
 
   const handleLogout = () => {
+    console.log('🔐 Führe sicheren Logout durch...');
     setIsLoggedIn(false);
     setUser(null);
-    localStorage.removeItem('token'); // Token aus localStorage entfernen
+    secureLogout(); // Sichere Session-Bereinigung
     setPage('store'); // Zur Startseite nach Logout
+    console.log('✅ Sicherer Logout abgeschlossen');
   };
 
   const handleUserUpdate = (updatedUser) => {

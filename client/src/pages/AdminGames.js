@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Modal from '../components/Modal';
 import EditGameModal from '../components/EditGameModal';
+import { secureGet, secureDelete } from '../utils/secureApi';
 
 export default function AdminGames({ user }) {
   const [games, setGames] = useState([]);
@@ -56,30 +57,21 @@ export default function AdminGames({ user }) {
   const loadAllGames = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      console.log('🔐 Lade Admin-Spiele mit sicherer API...');
       
-      if (!token) {
-        showModal('Anmeldung erforderlich', 'Bitte loggen Sie sich ein.', 'warning');
-        return;
-      }
-
-      const response = await fetch('http://localhost:8000/admin/games/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const gamesData = await response.json();
+      const gamesData = await secureGet('/admin/games/');
+      
+      if (gamesData) {
         setGames(gamesData);
-      } else if (response.status === 403) {
-        showModal('Zugriff verweigert', 'Nur Administratoren können alle Spiele verwalten.', 'error');
-      } else {
-        showModal('Fehler beim Laden', 'Spiele konnten nicht geladen werden.', 'error');
+        console.log('✅ Admin-Spiele erfolgreich geladen');
       }
     } catch (error) {
-      console.error('Fehler beim Laden der Spiele:', error);
-      showModal('Verbindungsfehler', 'Backend ist nicht erreichbar.', 'error');
+      console.error('❌ Fehler beim Laden der Admin-Spiele:', error);
+      if (error.message.includes('403')) {
+        showModal('Zugriff verweigert', 'Nur Administratoren können alle Spiele verwalten.', 'error');
+      } else {
+        showModal('Fehler beim Laden', 'Spiele konnten nicht geladen werden: ' + error.message, 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -93,28 +85,24 @@ export default function AdminGames({ user }) {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      console.log('🔐 Lösche Spiel mit sicherer API:', gameTitle);
       
-      const response = await fetch(`http://localhost:8000/games/${gameId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
+      const result = await secureDelete(`/games/${gameId}`);
+      
+      if (result) {
         showModal('Admin-Löschung erfolgreich', `👑 "${gameTitle}" wurde gelöscht.`, 'success');
         loadAllGames();
-      } else if (response.status === 403) {
-        showModal('Keine Berechtigung', 'Sie haben keine Berechtigung für diese Aktion.', 'error');
-      } else if (response.status === 404) {
-        showModal('Spiel nicht gefunden', 'Das Spiel konnte nicht gefunden werden.', 'error');
-      } else {
-        showModal('Fehler beim Löschen', 'Spiel konnte nicht gelöscht werden.', 'error');
+        console.log('✅ Spiel erfolgreich gelöscht');
       }
     } catch (error) {
-      console.error('Fehler beim Löschen des Spiels:', error);
-      showModal('Verbindungsfehler', 'Backend ist nicht erreichbar.', 'error');
+      console.error('❌ Fehler beim Löschen des Spiels:', error);
+      if (error.message.includes('403')) {
+        showModal('Keine Berechtigung', 'Sie haben keine Berechtigung für diese Aktion.', 'error');
+      } else if (error.message.includes('404')) {
+        showModal('Spiel nicht gefunden', 'Das Spiel konnte nicht gefunden werden.', 'error');
+      } else {
+        showModal('Fehler beim Löschen', 'Spiel konnte nicht gelöscht werden: ' + error.message, 'error');
+      }
     }
   };
 

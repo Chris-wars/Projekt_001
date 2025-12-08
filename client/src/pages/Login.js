@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Modal from '../components/Modal';
-import { securePasswordHash } from '../utils/crypto';
+import { pbkdf2PasswordHash, generateBrowserFingerprint, signDataForTransmission } from '../utils/enhancedCrypto';
+import { validatePassword } from '../utils/crypto';
 
 export default function Login({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -36,40 +37,68 @@ export default function Login({ onLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('🔐 Starte erweiterte Login-Verschlüsselung...');
     
     try {
-      // 🔒 CLIENT-SIDE VERSCHLÜSSELUNG vor Übertragung
-      const hashedPassword = await securePasswordHash(formData.password, formData.username);
-      console.log('🔐 Passwort verschlüsselt für Übertragung');
+      // 1. Generiere Browser-Fingerprint für zusätzliche Sicherheit
+      const browserFingerprint = await generateBrowserFingerprint();
+      console.log('🔍 Browser-Fingerprint generiert');
+      
+      // 2. Starke PBKDF2-Verschlüsselung (100.000 Iterationen)
+      console.log('🔐 Verschlüssele Passwort mit PBKDF2...');
+      const hashedPassword = await pbkdf2PasswordHash(
+        formData.password, 
+        formData.username, 
+        100000
+      );
+      console.log('✅ Passwort sicher verschlüsselt');
+      
+      // 3. Signiere Daten für Integritätsprüfung
+      const userSecret = `${formData.username}_${browserFingerprint}`;
+      const signedData = await signDataForTransmission({
+        username: formData.username,
+        password: hashedPassword,
+        is_hashed: true,
+        client_fingerprint: browserFingerprint,
+        encryption_method: 'PBKDF2-SHA256-100k'
+      }, userSecret);
+      console.log('🔏 Daten signiert für Übertragung');
 
-      // JSON-basierte Backend-Authentifizierung (kompatibler Endpoint)
+      // 4. Sende sichere Anfrage an Backend
       const response = await fetch('http://localhost:8000/login-json', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Client-Signature': signedData.signature || '',
+          'X-Client-Timestamp': signedData.timestamp.toString(),
+          'X-Encryption-Version': '2.0'
         },
-        body: JSON.stringify({
-          username: formData.username,
-          password: hashedPassword,  // 🔒 Verschlüsseltes Passwort senden
-          is_hashed: true           // 🔒 Backend informieren dass bereits gehashed
-        })
+        body: JSON.stringify(signedData.data)
       });
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Login erfolgreich mit verbesserter Sicherheit');
         
         // Token im localStorage speichern
         localStorage.setItem('token', data.access_token);
+        localStorage.setItem('user', JSON.stringify({
+          id: data.user.id,
+          username: data.user.username,
+          is_admin: data.user.is_admin,
+          fingerprint: browserFingerprint
+        }));
         
         // User-Daten sind bereits in der Response enthalten
         onLogin(data.user);
       } else {
         const errorData = await response.json();
+        console.error('❌ Login fehlgeschlagen:', errorData);
         showModal('Login fehlgeschlagen', errorData.detail, 'error');
       }
     } catch (error) {
-      console.error('Login-Fehler:', error);
-      showModal('Verbindungsfehler', 'Backend ist nicht erreichbar. Bitte stellen Sie sicher, dass das Backend läuft.', 'error');
+      console.error('💥 Verschlüsselungsfehler:', error);
+      showModal('Verschlüsselungsfehler', 'Ein Verschlüsselungsfehler ist aufgetreten. Bitte versuchen Sie es erneut.', 'error');
     }
   };
 
