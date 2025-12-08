@@ -13,13 +13,13 @@ LABEL version="1.0.0"
 WORKDIR /app
 
 # Package files kopieren für bessere Cache-Nutzung
-COPY package*.json ./
+COPY client/package*.json ./
 
 # Dependencies installieren
 RUN npm ci
 
-# Source Code kopieren
-COPY . .
+# Source Code aus dem client-Ordner kopieren
+COPY client/ .
 
 # React App builden
 RUN npm run build
