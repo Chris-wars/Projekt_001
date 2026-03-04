@@ -204,8 +204,7 @@ def get_games():
                 "is_free": bool(row[6]),
                 "download_url": row[7],
                 "image_url": row[8],
-                "developer_id": row[9],
-                "developer": {"username": row[10]} if row[10] else None
+                "developer_id": row[9]
             })
         
         conn.close()
@@ -236,21 +235,6 @@ def delete_game(game_id: int):
         if "nicht gefunden" in str(e):
             raise e
         raise HTTPException(status_code=500, detail=f"Fehler beim Löschen: {str(e)}")
-
-# User-Endpoints hinzufügen
-@app.get("/users/me/")
-def get_current_user():
-    """Aktuellen Benutzer abrufen (vereinfacht für Tests)"""
-    # Für Tests nehmen wir an, dass test_entwickler eingeloggt ist
-    return {
-        "id": 5,
-        "username": "test_entwicker", 
-        "email": "test@example.com",
-        "is_developer": True,
-        "is_admin": False,
-        "birth_date": "1990-01-01",
-        "avatar_url": None
-    }
 
 # Importiere auth für Login (vereinfacht)
 try:

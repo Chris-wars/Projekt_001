@@ -26,7 +26,7 @@ export const enhancedLogin = async (formData) => {
     }, userSecret);
     
     // 4. Sende sichere Anfrage an Backend
-    const response = await fetch('http://localhost:8000/login-json', {
+    const response = await fetch('/api/login-json', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ export const secureApiRequest = async (endpoint, options = {}) => {
       ...options.headers
     };
 
-    const response = await fetch(`http://localhost:8000${endpoint}`, {
+    const response = await fetch(`/api${endpoint}`, {
       ...options,
       headers
     });
