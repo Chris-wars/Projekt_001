@@ -1,0 +1,39 @@
+apiVersion: 2023-05-01
+location: westeurope
+name: indihub-app
+properties:
+  containers:
+  - name: backend
+    properties:
+      image: indihubregistry7620.azurecr.io/indihub-backend:latest
+      ports:
+      - port: 8000
+        protocol: TCP
+      resources:
+        requests:
+          cpu: 1.0
+          memoryInGB: 1.5
+  - name: frontend
+    properties:
+      image: indihubregistry7620.azurecr.io/indihub-frontend:latest
+      ports:
+      - port: 80
+        protocol: TCP
+      resources:
+        requests:
+          cpu: 1.0
+          memoryInGB: 1.5
+  osType: Linux
+  restartPolicy: Always
+  ipAddress:
+    type: Public
+    ports:
+    - port: 80
+      protocol: TCP
+    dnsNameLabel: indihub-app-final
+  imageRegistryCredentials:
+  - server: indihubregistry7620.azurecr.io
+    username: indihubregistry7620
+    password: "1ScrwwPLx30CTnYjZt6AvBRm2zNSW5RvDEnLFjQxDhIVUPKsTzo8JQQJ99CCAC5RqLJEqg7NAAACAZCRQnQG"
+tags: {}
+type: Microsoft.ContainerInstance/containerGroups

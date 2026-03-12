@@ -6,16 +6,13 @@ Erstellt alle Tabellen mit den korrekten Spalten und fügt einen Admin-User hinz
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from database import Base, DATABASE_URL
+from database import Base, engine
 import models
 from security import get_password_hash
 from datetime import date
 
 def init_database():
     """Initialisiert die Datenbank mit allen Tabellen und Admin-User"""
-    
-    # Engine erstellen
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
     
     # Alle Tabellen löschen und neu erstellen
     print("🗑️ Lösche alte Tabellen...")

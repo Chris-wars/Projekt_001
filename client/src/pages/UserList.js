@@ -52,7 +52,7 @@ export default function UserList({ user }) {
         return;
       }
 
-      response = await fetch(`http://localhost:8000${endpoint}`, {
+      response = await fetch(`/api${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -91,7 +91,7 @@ export default function UserList({ user }) {
       const roleUpdate = {};
       roleUpdate[roleType] = newValue;
 
-      const response = await fetch(`http://localhost:8000/admin/users/${userId}/role`, {
+      const response = await fetch(`/api/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

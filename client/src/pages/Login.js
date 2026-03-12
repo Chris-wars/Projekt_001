@@ -65,7 +65,7 @@ export default function Login({ onLogin }) {
       console.log('🔏 Daten signiert für Übertragung');
 
       // 4. Sende sichere Anfrage an Backend
-      const response = await fetch('http://localhost:8000/login-json', {
+      const response = await fetch('/api/login-json', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

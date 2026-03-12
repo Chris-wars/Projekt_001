@@ -31,72 +31,44 @@ export default function GameLibrary({ user, isStorePage = false }) {
   };
 
   // Wunschliste-Funktionen
-  const loadWishlistStatus = useCallback(async () => {
-    console.log('🔧 loadWishlistStatus aufgerufen, user:', !!user);
-    if (!user) return;
-    
+  const fetchWishlist = async () => {
     try {
-      const token = localStorage.getItem('token');
-      console.log('🔧 loadWishlistStatus - Token:', !!token);
-      if (!token) return;
-
-      console.log('🔧 loadWishlistStatus - User ID:', user.id, 'Username:', user.username);
-      
-      const response = await fetch('http://localhost:8000/wishlist/', {
+      const response = await fetch('/api/wishlist/', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      console.log('🔧 loadWishlistStatus - Response:', response.status);
+      console.log('🔧 fetchWishlist - Response:', response.status);
 
       if (response.ok) {
         const wishlistGamesData = await response.json();
-        console.log('🔧 loadWishlistStatus - Raw response:', wishlistGamesData);
+        console.log('🔧 fetchWishlist - Raw response:', wishlistGamesData);
         const wishlistIds = new Set(wishlistGamesData.map(game => game.id));
-        console.log('🔧 loadWishlistStatus - Geladene IDs:', Array.from(wishlistIds));
+        console.log('🔧 fetchWishlist - Geladene IDs:', Array.from(wishlistIds));
         setWishlistGames(wishlistIds);
       }
     } catch (error) {
       console.error('🔧 Fehler beim Laden der Wunschliste:', error);
     }
-  }, [user]);
+  };
 
-  const addToWishlist = async (gameId, gameTitle) => {
-    console.log('🔧 addToWishlist aufgerufen:', { gameId, gameTitle, user: !!user });
-    console.log('🔧 User Objekt vollständig:', user);
-    
-    if (!user) {
-      console.log('🔧 Kein User - zeige Modal');
-      showModal('Anmeldung erforderlich', 'Bitte loggen Sie sich ein, um Spiele zur Wunschliste hinzuzufügen.', 'warning');
-      return;
-    }
-
+  const addToWishlist = async (gameId) => {
     try {
-      const token = localStorage.getItem('token');
-      console.log('🔧 Token gefunden:', !!token, token ? token.substring(0, 20) + '...' : 'KEIN TOKEN');
-      
-      if (!token) {
-        console.log('🔧 Kein Token - zeige Modal');
-        showModal('Anmeldung erforderlich', 'Token nicht gefunden. Bitte loggen Sie sich erneut ein.', 'warning');
-        return;
-      }
-      
-      console.log('🔧 Sende API Request...');
-      const response = await fetch(`http://localhost:8000/wishlist/${gameId}`, {
+      const response = await fetch(`/api/wishlist/${gameId}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      console.log('🔧 API Response:', response.status, response.statusText);
+      console.log('🔧 addToWishlist - Response:', response.status);
 
       if (response.ok) {
         const newWishlistSet = new Set([...wishlistGames, gameId]);
         console.log('🔧 Aktualisiere Wunschliste-Set:', Array.from(newWishlistSet));
         setWishlistGames(newWishlistSet);
-        showModal('Wunschliste', `"${gameTitle}" zur Wunschliste hinzugefügt!`, 'success');
+        showModal('Wunschliste', `"${gameId}" zur Wunschliste hinzugefügt!`, 'success');
       } else if (response.status === 400) {
         const errorData = await response.json();
         console.log('🔧 400 Error:', errorData);
@@ -114,16 +86,16 @@ export default function GameLibrary({ user, isStorePage = false }) {
     }
   };
 
-  const removeFromWishlist = async (gameId, gameTitle) => {
+  const removeFromWishlist = async (gameId) => {
     try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`http://localhost:8000/wishlist/${gameId}`, {
+      const response = await fetch(`/api/wishlist/${gameId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+
+      console.log('🔧 removeFromWishlist - Response:', response.status);
 
       if (response.ok) {
         setWishlistGames(prev => {
@@ -131,7 +103,7 @@ export default function GameLibrary({ user, isStorePage = false }) {
           newSet.delete(gameId);
           return newSet;
         });
-        showModal('Entfernt', `"${gameTitle}" aus der Wunschliste entfernt.`, 'success');
+        showModal('Entfernt', `"${gameId}" aus der Wunschliste entfernt.`, 'success');
       } else {
         showModal('Fehler', 'Spiel konnte nicht aus der Wunschliste entfernt werden.', 'error');
       }
@@ -141,21 +113,19 @@ export default function GameLibrary({ user, isStorePage = false }) {
     }
   };
 
-  const loadGames = useCallback(async () => {
+  const fetchGames = async () => {
     try {
-      setLoading(true);
-      const response = await fetch('http://localhost:8000/games/');
+      const response = await fetch('/api/games/');
+      if (!response.ok) {
+        throw new Error('Netzwerkantwort war nicht ok');
+      }
+
+      const gamesData = await response.json();
+      setGames(gamesData);
       
-      if (response.ok) {
-        const gamesData = await response.json();
-        setGames(gamesData);
-        
-        // Lade auch die Wunschliste-Status
-        if (user) {
-          loadWishlistStatus();
-        }
-      } else {
-        showModal('Fehler beim Laden', 'Spiele konnten nicht geladen werden.', 'error');
+      // Lade auch die Wunschliste-Status
+      if (user) {
+        fetchWishlist();
       }
     } catch (error) {
       console.error('Fehler beim Laden der Spiele:', error);
@@ -163,11 +133,11 @@ export default function GameLibrary({ user, isStorePage = false }) {
     } finally {
       setLoading(false);
     }
-  }, [user, loadWishlistStatus]);
+  };
 
   useEffect(() => {
-    loadGames();
-  }, [loadGames]);
+    fetchGames();
+  }, [fetchGames]);
 
   const deleteGame = async (gameId, gameTitle) => {
     const isAdmin = user?.is_admin;
@@ -191,7 +161,7 @@ export default function GameLibrary({ user, isStorePage = false }) {
         return;
       }
 
-      const response = await fetch(`http://localhost:8000/games/${gameId}`, {
+      const response = await fetch(`/api/games/${gameId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -207,7 +177,7 @@ export default function GameLibrary({ user, isStorePage = false }) {
         } else {
           showModal('Spiel gelöscht', `"${gameTitle}" wurde erfolgreich gelöscht.`, 'success');
         }
-        loadGames();
+        fetchGames();
       } else if (response.status === 403) {
         showModal('Keine Berechtigung', 'Sie haben keine Berechtigung, dieses Spiel zu löschen.', 'error');
       } else if (response.status === 404) {

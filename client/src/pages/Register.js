@@ -88,7 +88,7 @@ export default function Register({ onLogin }) {
       console.log('🔏 Registrierungsdaten signiert');
 
       // 4. Sende sichere Registrierungsanfrage
-      const response = await fetch('http://localhost:8000/register', {
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ export default function Register({ onLogin }) {
           encryption_method: 'PBKDF2-SHA256-100k'
         }, userSecret);
         
-        const loginResponse = await fetch('http://localhost:8000/login-json', {
+        const loginResponse = await fetch('/api/login-json', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -53,4 +53,3 @@ Dockerfile
 Dockerfile.dev
 docker-compose*.yml
 .dockerignore
-nginx.conf

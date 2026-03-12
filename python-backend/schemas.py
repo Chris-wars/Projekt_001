@@ -17,7 +17,7 @@ Autor: Projekt Team
 Version: 1.0.0
 """
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from datetime import datetime, date
 
@@ -132,7 +132,7 @@ class UserUpdate(BaseModel):
     birth_year: Optional[int] = None  # Deprecated
     birth_date: Optional[date] = None
     
-    @validator('birth_date')
+    @field_validator('birth_date')
     def validate_birth_date_update(cls, v):
         """Validiere Geburtsdatum bei Updates"""
         if v is not None:
@@ -245,7 +245,7 @@ class GameCreate(GameBase):
         ValueError: Bei ungültigen Eingabedaten
     """
     
-    @validator('title')
+    @field_validator('title')
     def validate_title(cls, v):
         """
         Validiere Spieltitel
@@ -258,7 +258,7 @@ class GameCreate(GameBase):
             raise ValueError('Spieltitel darf maximal 100 Zeichen lang sein')
         return v.strip()
     
-    @validator('usk_rating')
+    @field_validator('usk_rating')
     def validate_usk_rating(cls, v):
         """
         Validiere USK-Altersfreigabe
@@ -270,7 +270,7 @@ class GameCreate(GameBase):
             raise ValueError(f'USK-Bewertung muss einer der folgenden Werte sein: {", ".join(valid_ratings)}')
         return v
     
-    @validator('genre')
+    @field_validator('genre')
     def validate_genre(cls, v):
         """
         Validiere Spielgenre
@@ -336,7 +336,7 @@ class Game(GameBase):
     """
     id: int
     developer_id: int
-    developer: User
+    developer: "User"  # Use string forward reference
     is_published: bool
     release_date: Optional[datetime] = None
     created_at: Optional[datetime] = None

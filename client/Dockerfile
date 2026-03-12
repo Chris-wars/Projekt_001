@@ -2,7 +2,7 @@
 # Multi-stage build für optimierte Production-Builds
 
 # Build Stage - Node.js für React Build
-FROM node:20-alpine AS build
+FROM node:20-bookworm-slim AS build
 
 # Metadata
 LABEL maintainer="Projekt Team <support@indiegameplatform.com>"
@@ -13,22 +13,28 @@ LABEL version="1.0.0"
 WORKDIR /app
 
 # Package files kopieren für bessere Cache-Nutzung
-COPY client/package*.json ./
+COPY package*.json ./
 
 # Dependencies installieren
 RUN npm ci
 
+# System-Pakete aktualisieren, um Sicherheitslücken zu schließen
+RUN apt-get update && apt-get upgrade -y
+
 # Source Code aus dem client-Ordner kopieren
-COPY client/ .
+COPY . .
 
 # React App builden
 RUN npm run build
 
 # Production Stage - Nginx für Static File Serving
-FROM nginx:alpine AS production
+FROM nginx:latest AS production
 
-# Nginx Konfiguration kopieren
-COPY client/nginx.conf /etc/nginx/nginx.conf
+
+# Nginx Konfiguration und Entrypoint kopieren
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Build Artifacts von build stage kopieren
 COPY --from=build /app/build /usr/share/nginx/html
@@ -45,5 +51,6 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD /health-check.sh
 
-# Nginx starten
-CMD ["nginx", "-g", "daemon off;"]
+
+# Entrypoint für dynamische nginx.conf
+ENTRYPOINT ["/docker-entrypoint.sh"]

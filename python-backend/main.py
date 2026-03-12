@@ -1,3 +1,6 @@
+
+print("### Azure-Start: main.py wird ausgeführt! ###")
+
 """
 Indie Game Platform - Main FastAPI Application
 
@@ -35,7 +38,7 @@ import schemas
 import crud
 import library_api
 # import legacy_compat_api
-import simple_games_api
+# # import simple_games_api
 import wishlist_api  # Wunschliste-API hinzufügen
 from database import engine, get_db
 from security import SECRET_KEY, ALGORITHM, create_access_token, verify_password
@@ -150,7 +153,7 @@ def login_json(credentials: dict, db: Session = Depends(get_db)):
     }
 app.include_router(library_api.router)
 # app.include_router(legacy_compat_api.router)
-app.include_router(simple_games_api.router, prefix="/api", tags=["Games"])
+# # app.include_router(simple_games_api.router, prefix="/api", tags=["Games"])
 app.include_router(wishlist_api.router)
 
 @app.get("/", summary="API Root", tags=["General"])

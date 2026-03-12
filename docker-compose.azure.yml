@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  backend:
+    image: indihub1988.azurecr.io/backend:latest
+    restart: always
+    ports:
+      - "8000:8000" # Port für interne Kommunikation verfügbar machen
+    # Die Umgebungsvariablen werden jetzt direkt in den App Service-Einstellungen konfiguriert
+    # Volumes werden in App Service anders gehandhabt (persistenter Storage)
+    # Dieser Pfad wird später konfiguriert
+    volumes:
+      - ${WEBAPP_STORAGE_HOME}/data:/app/data
+      - ${WEBAPP_STORAGE_HOME}OME}OME}OME}OME}OME}OME}/uploads:/app/uploads
+
+  frontend:
+    image: indihub1988.azurecr.io/frontend:latest
+    restart: always
+    ports:
+      - "80:80" # Exponiert den Frontend-Container nach außen
+    # Die Umgebungsvariablen werden jetzt direkt in den App Service-Einstellungen konfiguriert
+    depends_on:
+      - backend

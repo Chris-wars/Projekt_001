@@ -46,7 +46,7 @@ export const secureApiRequest = async (endpoint, options = {}) => {
       console.warn('⚠️ Fingerprint-Generierung fehlgeschlagen:', error);
     }
 
-    const response = await fetch(`http://localhost:8000${endpoint}`, {
+    const response = await fetch(`/api${endpoint}`, {
       ...options,
       headers
     });

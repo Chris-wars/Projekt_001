@@ -1,0 +1,35 @@
+{
+  "family": "backend-task",
+  "executionRoleArn": "arn:aws:iam::981548929029:role/Trust",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "981548929029.dkr.ecr.eu-central-1.amazonaws.com/backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+          {"name": "DB_HOST", "value": "3.75.236.145"},
+          {"name": "DB_USER", "value": "postgres"},
+          {"name": "DB_PASSWORD", "value": "meinPasswort"},
+          {"name": "DB_NAME", "value": "projekt_db"}
+      ]
+        ,
+        "logConfiguration": {
+            "logDriver": "awslogs",
+            "options": {
+              "awslogs-group": "ecsbackendtask",
+              "awslogs-region": "eu-central-1",
+              "awslogs-stream-prefix": "ecs"
+            }
+        }
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024"
+}

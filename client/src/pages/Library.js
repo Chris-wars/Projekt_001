@@ -43,7 +43,7 @@ export default function Library({ user }) {
       }
 
       // Lade Wunschliste
-      const response = await fetch('http://localhost:8000/wishlist/', {
+      const response = await fetch('/api/wishlist/', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -54,7 +54,7 @@ export default function Library({ user }) {
         setWishlistGames(games);
         
         // Lade Statistiken
-        const statsResponse = await fetch('http://localhost:8000/wishlist/stats', {
+        const statsResponse = await fetch('/api/wishlist/stats', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -85,7 +85,7 @@ export default function Library({ user }) {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:8000/wishlist/${gameId}`, {
+      const response = await fetch(`/api/wishlist/${gameId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
